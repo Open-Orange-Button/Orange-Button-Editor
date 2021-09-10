@@ -173,7 +173,7 @@
                   name="info-circle"
                   id="info-circle-"
                   v-b-popover.hover.right="
-                    'Choose an OB OpenAPI Definition File from your own system or load a Master File from View/Edit Dependency. '
+                    'Choose an OB OpenAPI Definition File from your own system. '
                   "
                 />
               </div>
@@ -196,15 +196,6 @@
                   v-if="tabIndexFileUpload == 1"
                 >
                   Create
-                </b-button>
-                <b-button
-                  variant="primary"
-                  class="float-right"
-                  @click="loadDependencyFile"
-                  :disabled="!file"
-                  v-if="tabIndexFileUpload == 2"
-                >
-                  Open
                 </b-button>
                 <b-button
                   variant="danger"
@@ -307,35 +298,6 @@
                           placeholder="Enter filename for your new definition file."
                         ></b-form-input>
                       </b-form-group>
-                    </div>
-                  </b-tab>
-                  <b-tab title="View/Edit Dependency">
-                    <div class="database-selector-container">
-                      <div class="database-selector-list">
-                        <li
-                          v-for="(value, name, index) in dbList"
-                          id="db-in-list"
-                          @click="selectDBFile(index, name)"
-                          :class="{ 'selected-node': index == selectedIndex }"
-                        >
-                          <span id="db-list-name">
-                            {{ name }}
-                          </span>
-                        </li>
-                      </div>
-                      <div class="database-selector-list-information">
-                        <span v-if="selectedDependencyInfo">
-                          <p>{{ selectedDependencyInfo }}</p>
-                          <!-- <b-form-checkbox
-                                            v-model="readOnly"
-                                            name="checkbox-2"
-                                            value="true"
-                                            unchecked-value="false"
-                                        >
-                                            Read only
-                                        </b-form-checkbox> -->
-                        </span>
-                      </div>
                     </div>
                   </b-tab>
                 </div>
@@ -459,8 +421,6 @@ import EditDefinition from "../components/EditDefinition/EditDefinition";
 import EditItemTypesMain from "../components/ItemTypes/EditItemTypesMain"
 import * as miscUtilities from "../utils/miscUtilities";
 import * as JSONEditor from "../utils/JSONEditor.js";
-import SolarTaxonomyMaster from "@/assets/master_files/Master-Solar-Taxonomy.json";
-import OBOpenAPIMaster from "@/assets/master_files/Master-OB-OpenAPI.json";
 import FileSaver from "file-saver";
 
 export default {
@@ -503,49 +463,7 @@ export default {
         this.$store.commit('clearEditorView')
         this.$store.commit('changeViewerMode', 'Edit Mode')
       }
-
     }
-
-    this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"] = {
-      fullFileForExport: SolarTaxonomyMaster,
-      file: SolarTaxonomyMaster.components.schemas,
-      fileName: "Master-Solar-Taxonomy.json"
-    };
-
-    this.$store.state.loadedFiles["Master-OB-OpenAPI.json"] = {
-      fullFileForExport: OBOpenAPIMaster,
-      file: OBOpenAPIMaster.components.schemas,
-      fileName: "Master-OB-OpenAPI.json"
-    };
-
-    // load in item type for default definition files (solar and ob)
-    if (this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"]['fullFileForExport']['x-ob-item-types']) {
-      this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"]["item_types"] = this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"]['fullFileForExport']['x-ob-item-types']
-    } else {
-      this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"]["item_types"] = {}
-    }
-
-    if (this.$store.state.loadedFiles["Master-OB-OpenAPI.json"]['fullFileForExport']['x-ob-item-types']) {
-      this.$store.state.loadedFiles["Master-OB-OpenAPI.json"]["item_types"] = this.$store.state.loadedFiles["Master-OB-OpenAPI.json"]['fullFileForExport']['x-ob-item-types']
-    } else {
-      this.$store.state.loadedFiles["Master-OB-OpenAPI.json"]["item_types"] = {}
-    }
-
-    // load in item type groups for default definition files (solar and ob)
-    if (this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"]['fullFileForExport']['x-ob-item-type-groups']) {
-      this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"]["item_type_groups"] = this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"]['fullFileForExport']['x-ob-item-type-groups']
-    } else {
-      this.$store.state.loadedFiles["Master-Solar-Taxonomy.json"]["item_type_groups"] = {}
-    }
-
-    if (this.$store.state.loadedFiles["Master-OB-OpenAPI.json"]['fullFileForExport']['x-ob-item-type-groups']) {
-      this.$store.state.loadedFiles["Master-OB-OpenAPI.json"]["item_type_groups"] = this.$store.state.loadedFiles["Master-OB-OpenAPI.json"]['fullFileForExport']['x-ob-item-type-groups']
-    } else {
-      this.$store.state.loadedFiles["Master-OB-OpenAPI.json"]["item_type_groups"] = {}
-    }
-
-    this.file = this.$store.state.loadedFiles["Master-OB-OpenAPI.json"];
-    this.loadDependencyFile()
   },
   data() {
     return {
@@ -566,18 +484,6 @@ export default {
       selectedIndex: null,
       selectedDependencyFileName: null,
       selectedDependencyInfo: null,
-      dbList: {
-        "Master-Solar-Taxonomy.json": {
-          information:
-            "This is the latest release of the Orange Button Solar Taxonomy",
-          fileName: "Master-Solar-Taxonomy.json"
-        },
-        "Master-OB-OpenAPI.json": {
-          information:
-            "This is the latest release of the Orange Button OpenAPI Master Document",
-          fileName: "Master-OB-OpenAPI.json"
-        }
-      },
       fileAlreadyOpened: false,
       currentTabIndex: null,
       newFileForm: {
@@ -729,13 +635,6 @@ export default {
         this.showLoadMore = true;
       }
     },
-
-    selectDBFile(index, name) {
-      this.selectedIndex = index;
-      this.selectedDependencyFileName = this.dbList[name]["fileName"];
-      this.selectedDependencyInfo = this.dbList[name]["information"];
-      this.file = this.$store.state.loadedFiles[name];
-    },
     unSelectFile() {
       this.file = null;
       this.showMissingRefsErr = false;
@@ -868,7 +767,6 @@ export default {
     file() {
       this.fileToJSON();
     },
-
     "$store.state.selectDefinitionNode"() {
       let yCoord = 0;
       let notRoot = false;

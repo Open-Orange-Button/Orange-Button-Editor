@@ -663,14 +663,7 @@ export default new Vuex.Store({
       state.loadedFiles[file.fileName] = file;
     },
     removeFile(state, fileName) {
-      if (
-        !(
-          fileName == "Master-Solar-Taxonomy.json" ||
-          fileName == "Master-OB-OpenAPI.json"
-        )
-      ) {
         delete state.loadedFiles[fileName];
-      }
     },
     loadInDefinition(state, payload) {
       let defnNameToLoad = payload.defnName;

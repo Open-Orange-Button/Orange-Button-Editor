@@ -61,8 +61,6 @@ Child of EditDefinition, edit definition form
 
 <script>
 import * as miscUtilities from "../../utils/miscUtilities.js";
-import solarTypes from "@/assets/type_files/solar-types-units.json";
-import utrTypes from "@/assets/type_files/utr-units.json";
 export default {
   created() {
     this.allItemTypes = this.$store.state.loadedFiles[this.$store.state.selectedFileName]["item_types"]
