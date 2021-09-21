@@ -341,5 +341,6 @@ export default {
   justify-content: center;
   align-items: center;
   border-top: #d3d3d3 solid 1px;
+  z-index: 999999999;
 }
 </style>
