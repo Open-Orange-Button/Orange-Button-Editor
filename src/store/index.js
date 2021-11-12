@@ -546,6 +546,22 @@ export default new Vuex.Store({
             }
           ]
         };
+      } else if (payload.definitionType == "OB Taxonomy Element Array") {
+        defn_attr = {
+          allOf: [
+            {
+              $ref:
+                "#/components/schemas/TaxonomyElementArray"
+            },
+            {
+              type: "object",
+              description: payload.definitionDescription,
+              "x-ob-item-type": payload.OBItemType,
+              "x-ob-item-type-group": payload.OBItemTypeGroup,
+              "x-ob-usage-tips": payload.OBUsageTips,
+              "x-ob-sample-value": payload.OBSampleValue
+            }]
+        };
       } else if (payload.definitionType == "OB Array") {
         let ref = ''
         if (state.currentFile.fileName == payload.arrayItemFileName) {

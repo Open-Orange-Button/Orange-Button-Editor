@@ -867,7 +867,8 @@ export default {
         "TaxonomyElementString",
         "TaxonomyElementNumber",
         "TaxonomyElementInteger",
-        "TaxonomyElementBoolean"
+        "TaxonomyElementBoolean",
+        "TaxonomyElementArray"
       ];
       let nodeType = "";
       let defnRef = "";
