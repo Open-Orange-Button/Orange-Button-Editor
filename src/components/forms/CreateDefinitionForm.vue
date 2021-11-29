@@ -72,7 +72,8 @@
           definitionType == 'OB Taxonomy Element String' ||
             definitionType == 'OB Taxonomy Element Number' ||
             definitionType == 'OB Taxonomy Element Integer' ||
-            definitionType == 'OB Taxonomy Element Boolean'
+            definitionType == 'OB Taxonomy Element Boolean' ||
+            definitionType == 'OB Taxonomy Element Array'
         "
       >
         <b-form-select
@@ -195,7 +196,8 @@ export default {
         "OB Taxonomy Element String",
         "OB Taxonomy Element Number",
         "OB Taxonomy Element Integer",
-        "OB Taxonomy Element Boolean"
+        "OB Taxonomy Element Boolean",
+        "OB Taxonomy Element Array"
       ],
       arrayItemSearchTerm: "",
       selectedFileName: null,
