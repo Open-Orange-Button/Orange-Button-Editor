@@ -955,7 +955,7 @@ export default {
                 isLocal
               ]);
             }
-          } else if (fileReference[key]["type"] == "array") {
+          } else if (fileReference[key]["type"] == "array" && fileReference[key]["items"]) {
             nodeType = "Array";
             arr_item = fileReference[key]["items"]["$ref"];
             arr_lst.push([
