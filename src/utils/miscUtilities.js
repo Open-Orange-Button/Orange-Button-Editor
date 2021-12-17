@@ -595,7 +595,7 @@ export function buildSampleJSON(name, fileItems, state, searchMode, children, in
   if (item["allOf"]) {
     let ref = item["allOf"][0]["$ref"];
     result = getItemJSON(ref, item, fileItems, state, searchMode, children, index, name);
-  } else if (item["type"] === "array") {
+  } else if (item["type"] === "array" && item["items"]) {
     let ref = item["items"]["$ref"];
     result = [];
     result.push(getItemJSON(ref, item, fileItems, state, searchMode, children, index, name));
