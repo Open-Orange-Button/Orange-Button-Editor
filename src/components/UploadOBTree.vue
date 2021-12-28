@@ -480,7 +480,7 @@ export default {
                 ]);
               }
             }
-          } else if ("type" in fileReference[key] && fileReference[key]["type"] == "array") {
+          } else if ("type" in fileReference[key] && fileReference[key]["type"] == "array" && fileReference[key]["items"]) {
             nodeType = "Array";
             arr_item = fileReference[key]["items"]["$ref"];
             arr_lst.push([
