@@ -1,5 +1,7 @@
 # ob-editor
 
+## Use the editor at https://openobeditor.sunspec.org
+
 ## Project setup
 ```
 npm install
