@@ -344,7 +344,7 @@ export default {
       } else {
         temp_ret_obj = [
           { Attributes: "Name", Values: this.$store.state.nodeName },
-          { Attributes: "Type", Values: this.$store.state.nodeParentOBPrimativeValueType },
+          { Attributes: "Type", Values: (this.$store.state.nodeParentOBPrimativeValueType || this.$store.state.nodeType) },
           { Attributes: "Documentation", Values: temp_doc },
           { Attributes: "Usage Tips", Values: defnOBUsageTips }
         ];

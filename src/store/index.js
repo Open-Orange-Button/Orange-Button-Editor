@@ -494,7 +494,7 @@ export default new Vuex.Store({
           description: payload.definitionDescription,
           properties: {}
         };
-      } else if (payload.definitionType == "OB Array") {
+      } else if (payload.definitionType == "OB Object Array") {
         let ref = ''
         if (state.currentFile.fileName == payload.arrayItemFileName) {
           ref = "#/components/schemas/" + payload.arrayItemDefnName

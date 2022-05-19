@@ -130,7 +130,7 @@
         </b-table>
       </div> -->
 
-      <span v-if="definitionType == 'OB Array'">
+      <span v-if="definitionType == 'OB Object Array'">
         <div>Choose array item:</div>
         <div>Select document to choose array item from:</div>
         <b-form-select
@@ -267,7 +267,7 @@ export default {
         this.submissionErrorMsg = "Please enter a definition description.";
         this.submissionError = true;
         return;
-      } else if(this.definitionType === "OB Array" && (!this.selectedFileName || !this.selectedDefnName)) {
+      } else if(this.definitionType === "OB Object Array" && (!this.selectedFileName || !this.selectedDefnName)) {
         this.submissionErrorMsg = "Please select a file and an array item.";
         this.submissionError = true;
         return;
@@ -334,7 +334,7 @@ export default {
     },
     OBDataTypeInfo() {
       let info = {
-        "": "Select a definition type to view info about it.",
+        "": "Select a definition type to view more information.",
         "OB Object": ("an object whose fields are other OB objects or elements.<br>" +
                       "These fields are added to the object after it is defined."),
         "OB Object Array": ("an array whose items are an OB object or element.<br>" +
