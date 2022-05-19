@@ -6,13 +6,23 @@
         label="OB Definition type:"
         label-for="node-type-input"
       >
-        <b-form-select
-          id="node-type-input"
-          v-model="definitionType"
-          :options="OBDataTypes"
-          :disabled="!preSubmit"
-          :state="Boolean(definitionType)"
-        ></b-form-select>
+        <b-row>
+        <b-col>
+          <b-form-select
+            id="node-type-input"
+            v-model="definitionType"
+            :options="OBDataTypes"
+            :disabled="!preSubmit"
+            :state="Boolean(definitionType)"
+          ></b-form-select>
+        </b-col>
+        <b-col sm="auto">
+          <v-icon name="info-circle" scale="1.5" id="info-tooltip-target" />
+          <b-tooltip target="info-tooltip-target" triggers="click hover" placement="right">
+            <b>{{ definitionType }}</b>: <span v-html="OBDataTypeInfo[definitionType]" />
+          </b-tooltip>
+        </b-col>
+        </b-row>
       </b-form-group>
       <b-form-group
           label="OpenAPI Element Type"
@@ -196,7 +206,7 @@ export default {
       selectedItemTypeGroup: '',
       possibleItemTypeGroups: [],
       definitionName: null,
-      definitionType: null,
+      definitionType: "",
       definitionDescription: null,
       preSubmit: true,
       submissionError: false,
@@ -221,7 +231,7 @@ export default {
           { key: "enumOrUnitID", label: "Enum ID", thStyle: { width: "150px" } }, 
           { key: "enumOrUnitLabel", label: "Enum Label", thStyle: { width: "150px" } },
           { key: "enumOrUnitDescription", label: "Enum Description"}
-      ],         
+      ]
     };
   },
   methods: {
@@ -321,6 +331,19 @@ export default {
         "OB Object",
         "OB Object Array"
       ];
+    },
+    OBDataTypeInfo() {
+      let info = {
+        "": "Select a definition type to view info about it.",
+        "OB Object": ("an object whose fields are other OB objects or elements.<br>" +
+                      "These fields are added to the object after it is defined."),
+        "OB Object Array": ("an array whose items are an OB object or element.<br>" +
+                            "The array item is chosen when the array is defined.")
+      };
+      info[this.OBTaxonomyElementDisplayName] = ("an object whose fields are primitives.<br>" + //: Value, Units, StartTime, EndTime, Decimals, and Precision.<br>" +
+                                                 "All primitives are strings except Value which is one of these OpenAPI types: boolean, integer, number, string, and array.<br>" +
+                                                 "To define Value as an array, choose one of the other four types and check the 'Array' checkbox.");
+      return info;
     },
     allItemTypesComputed() {
       let ret_arr = []
@@ -613,4 +636,9 @@ export default {
   margin-top: 5px;
   margin-bottom: 10px;
 }
+
+div.tooltip-inner {
+  text-align: left;
+}
+
 </style>
