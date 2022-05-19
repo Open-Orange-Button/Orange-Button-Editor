@@ -98,7 +98,8 @@
           :depth="depth + 1"
           :nodeDescription="arr[1].description"
           :isObj="true"
-          :parent="name"
+          :parent_name="name"
+          :parentOBPrimativeValueType="OBPrimativeValueType"
           :parent_trail="defnRefParentTrail(arr[0], parent_trail)"
           type="object"
           :ref="defnRef(arr[0], file.fileName)"
@@ -122,16 +123,18 @@
           :expandAllObjects="expandAllObjects"
           :nodeDescription="arr[1].description"
           :isObj="false"
-          parent="root"
+          parent_name="root"
+          :parentOBPrimativeValueType="OBPrimativeValueType"
           :parent_trail="defnRefParentTrail(arr[0], parent_trail)"
           type="array"
           :ref="defnRef(arr[0], file.fileName)"
           :nameRef="defnRef(arr[0], file.fileName)"
           :file="file"
           :isArray="true"
-          :arrayItemRef="arr[5]"
+          :arrayItemRef="arr[5]['$ref'] || arr[5]['type']"
           :arrayItemType="getArrItemType(arr[5])"
           :referenceFile="arr[3]"
+          :subClassedNode="arr[6]"
           :isLocal="arr[4]"
           :viewObj="false"
           :isTopLevel="false"
@@ -145,7 +148,8 @@
           :children="subClassChildren(file.file, arr[4], arr[1], arr[5])"
           :depth="depth + 1"
           :nodeDescription="getNodeDescription(arr[1])"
-          :parent="name"
+          :parent_name="name"
+          :parentOBPrimativeValueType="OBPrimativeValueType"
           :parent_trail="defnRefParentTrail(arr[0], parent_trail)"
           type="object"
           :ref="defnRef(arr[0], file.fileName)"
@@ -169,7 +173,8 @@
           :depth="depth + 1"
           :nodeDescription="getNodeDescription(arr[1])"
           :isObj="true"
-          :parent="name"
+          :parent_name="name"
+          :parentOBPrimativeValueType="OBPrimativeValueType"
           :parent_trail="defnRefParentTrail(arr[0], parent_trail)"
           type="object"
           :ref="defnRef(arr[0], file.fileName)"
@@ -198,7 +203,8 @@
           :name="arr[0]"
           :depth="depth + 1"
           :nodeDescription="getNodeDescription(arr[1])"
-          :parent="name"
+          :parent_name="name"
+          :parentOBPrimativeValueType="OBPrimativeValueType"
           :parent_trail="defnRefParentTrail(arr[0], parent_trail)"
           type="element"
           :ref="defnRef(arr[0], file.fileName)"
@@ -228,9 +234,9 @@ export default {
     "depth",
     "expandAllObjects",
     "parent_name",
+    "parentOBPrimativeValueType",
     "nodeDescription",
     "isObj",
-    "parent",
     "parent_trail",
     "type",
     "nameRef",
@@ -254,7 +260,7 @@ export default {
       expandArray: true,
       expandElement: false,
       isObject: Boolean(this.children),
-      parents: this.parent,
+      OBPrimativeValueType: "",
       sortedObjLen: null,
       expandDefn: false,
       viewObjFinal: false
@@ -275,6 +281,9 @@ export default {
   },
   computed: {
     arrayItemNameFromRef() {
+      if (this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(this.arrayItemRef)) {
+        return miscUtilities.capitalizeFirstChar(this.arrayItemRef);
+      }
       return this.arrayItemRef.slice(this.arrayItemRef.lastIndexOf("/") + 1);
     },
     shortenName() {
@@ -332,6 +341,16 @@ export default {
           refFileContext = "LOCAL";
           isTaxonomyElement = false;
 
+          let translatedKey = key;
+          if (key === "Value") {
+            // 'Value' needs to be translated to 'Value<OpenAPIType>'
+            let valueRef = this.children["Value"]["$ref"];
+            translatedKey = valueRef.substring(valueRef.lastIndexOf("/") + 1);
+            // Extract the type of the Value primative. Note 'value' has one 'e'.
+            this.OBPrimativeValueType = translatedKey.substring(translatedKey.indexOf('e') + 1);
+          }
+          let childDef = fileReference[translatedKey];
+
           if (!this.children[key]["referenceFile"]) {
             defnRef = miscUtilities.getDefnRef(
               fileReference,
@@ -353,7 +372,7 @@ export default {
               this.children[key]["$ref"]
             );
 
-            if (!fileReference[key] || refFileContext != "LOCAL") {
+            if (!childDef || refFileContext != "LOCAL") {
               fileReference = this.$store.state.loadedFiles[refFileContext][
                 "file"
               ];
@@ -368,14 +387,14 @@ export default {
             fromSuperClass = true;
           }
 
-          if ("type" in fileReference[key] && fileReference[key]["type"] == "object") {
+          if ("type" in childDef && childDef["type"] == "object") {
             nodeType = "Object";
 
             if (fromSuperClass) {
               if (isLocal) {
                 obj_lst_SC.push([
                   key,
-                  fileReference[key],
+                  childDef,
                   fromSuperClass,
                   nodeType,
                   fileReference,
@@ -384,7 +403,7 @@ export default {
               } else {
                 obj_lst_SC.push([
                   key,
-                  fileReference[key],
+                  childDef,
                   fromSuperClass,
                   nodeType,
                   fileReference,
@@ -395,7 +414,7 @@ export default {
               if (isLocal) {
                 obj_lst.push([
                   key,
-                  fileReference[key],
+                  childDef,
                   fromSuperClass,
                   nodeType,
                   fileReference,
@@ -404,7 +423,7 @@ export default {
               } else {
                 obj_lst.push([
                   key,
-                  fileReference[key],
+                  childDef,
                   fromSuperClass,
                   nodeType,
                   fileReference,
@@ -412,12 +431,12 @@ export default {
                 ]);
               }
             }
-          } else if ("allOf" in fileReference[key]) {
-            for (let i in fileReference[key]["allOf"]) {
-              if (fileReference[key]["allOf"][i]["$ref"]) {
-                superClass_lst.push(fileReference[key]["allOf"][i]["$ref"]);
+          } else if ("allOf" in childDef) {
+            for (let i in childDef["allOf"]) {
+              if (childDef["allOf"][i]["$ref"]) {
+                superClass_lst.push(childDef["allOf"][i]["$ref"]);
               } else {
-                subClass_obj = fileReference[key]["allOf"][i];
+                subClass_obj = childDef["allOf"][i];
               }
             }
 
@@ -480,21 +499,22 @@ export default {
                 ]);
               }
             }
-          } else if ("type" in fileReference[key] && fileReference[key]["type"] == "array" && fileReference[key]["items"]) {
+          } else if ("type" in childDef && childDef["type"] == "array" && childDef["items"]) {
             nodeType = "Array";
-            arr_item = fileReference[key]["items"]["$ref"];
+            arr_item = childDef["items"];
             arr_lst.push([
               key,
-              fileReference[key],
+              childDef,
               nodeType,
               fileReference,
               isLocal,
-              arr_item
+              arr_item,
+              fromSuperClass
             ]);
           } else {
             immutable_lst.push([
               key,
-              fileReference[key],
+              childDef,
               fromSuperClass,
               fileReference,
               isLocal
@@ -526,20 +546,28 @@ export default {
     toggleExpandDefn() {
       this.expandDefn = !this.expandDefn;
     },
-    getArrayItemAsChildren(file, arrayItemRef, key) {
-      return miscUtilities.getArrayItemAsChildren(
-        file,
-        arrayItemRef,
-        key,
-        this.$store.state.loadedFiles
-      );
+    getArrayItemAsChildren(file, arrItem, key) {
+      if (this.isTaxonomyElementArray(arrItem)) {
+        return {};
+      } else {
+        return miscUtilities.getArrayItemAsChildren(
+          file,
+          arrItem["$ref"],
+          key,
+          this.$store.state.loadedFiles
+        );
+      }
     },
-    getArrItemType(arrItemRef) {
-      return miscUtilities.getArrayItemType(
-        arrItemRef,
-        this.$store.state.loadedFiles,
-        this.$store.state.currentFile
-      );
+    getArrItemType(arrItem) {
+      if (this.isTaxonomyElementArray(arrItem)) {
+        return arrItem["type"];
+      } else {
+        return miscUtilities.getArrayItemType(
+          arrItem["$ref"],
+          this.$store.state.loadedFiles,
+          this.$store.state.currentFile
+        );
+      }
     },
     toggleSelect() {
       this.$store.commit("toggleSelectDefinitionNode");
@@ -548,9 +576,11 @@ export default {
       this.$store.commit({
         type: "selectNode",
         nodeName: this.name,
-        nodeParent: this.parent,
+        nodeParent: this.parent_name,
         nodeParentTrail: this.parent_trail,
         nodeType: this.type,
+        OBPrimativeValueType: this.OBPrimativeValueType,
+        parentOBPrimativeValueType: this.parentOBPrimativeValueType,
         nameRef: this.nameRef,
         nodeDescription: this.nodeDescription,
         isSubClassedNode: this.subClassedNode,
@@ -679,6 +709,10 @@ export default {
         'mode': 'create_cookie'
       });
       this.$store.commit("reRenderList")
+    },
+    isTaxonomyElementArray(arrItem) {
+      return !arrItem["$ref"]
+        && this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(arrItem["type"])
     }
   },
   watch: {

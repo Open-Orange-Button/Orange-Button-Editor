@@ -50,7 +50,7 @@
                       :expandAllObjects="expandAllObjects"
                       :nodeDescription="arr[1].description"
                       :isObj="true"
-                      parent="root"
+                      parent_name="root"
                       :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
                       type="object"
                       :ref="defnRef(arr[0], item.fileName)"
@@ -72,14 +72,14 @@
                       :expandAllObjects="expandAllObjects"
                       :nodeDescription="arr[1].description"
                       :isObj="false"
-                      parent="root"
+                      parent_name="root"
                       :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
                       type="array"
                       :ref="defnRef(arr[0], item.fileName)"
                       :nameRef="defnRef(arr[0], item.fileName)"
                       :file="computedFile"
                       :isArray="true"
-                      :arrayItemRef="arr[5]"
+                      :arrayItemRef="arr[5]['$ref'] || arr[5]['type']"
                       :arrayItemType="getArrItemType(arr[5])"
                       :referenceFile="arr[3]"
                       :isLocal="arr[4]"
@@ -97,7 +97,7 @@
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
                       :nodeDescription="getNodeDescription(arr[1])"
-                      parent="root"
+                      parent_name="root"
                       :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
                       type="object"
                       :ref="defnRef(arr[0], item.fileName)"
@@ -120,7 +120,7 @@
                       :expandAllObjects="expandAllObjects"
                       :nodeDescription="getNodeDescription(arr[1])"
                       :isObj="true"
-                      parent="root"
+                      parent_name="root"
                       :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
                       type="object"
                       :ref="defnRef(arr[0], item.fileName)"
@@ -140,9 +140,9 @@
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
                       :nodeDescription="getNodeDescription(arr[1])"
-                      parent="root"
+                      parent_name="root"
                       :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
-                      type="string"
+                      :type=arr[4]
                       :ref="defnRef(arr[0], item.fileName)"
                       :nameRef="defnRef(arr[0], item.fileName)"
                       :file="computedFile"
@@ -497,12 +497,16 @@ export default {
     };
   },
   methods: {
-    getArrItemType(arrItemRef) {
-      return miscUtilities.getArrayItemType(
-        arrItemRef,
-        this.$store.state.loadedFiles,
-        this.$store.state.currentFile
-      );
+    getArrItemType(arrItem) {
+      if (this.isTaxonomyElementArray(arrItem)) {
+        return arrItem["type"];
+      } else {
+        return miscUtilities.getArrayItemType(
+          arrItem["$ref"],
+          this.$store.state.loadedFiles,
+          this.$store.state.currentFile
+        );
+      }
     },
     fileToJSON() {
       if (this.file) {
@@ -618,13 +622,17 @@ export default {
         this.$store.state.loadedFiles
       );
     },
-    getArrayItemAsChildren(file, arrayItemRef, key) {
-      return miscUtilities.getArrayItemAsChildren(
-        file,
-        arrayItemRef,
-        key,
-        this.$store.state.loadedFiles
-      );
+    getArrayItemAsChildren(file, arrayItem, key) {
+      if (this.isTaxonomyElementArray(arrayItem)) {
+        return {};
+      } else {
+        return miscUtilities.getArrayItemAsChildren(
+          file,
+          arrayItem["$ref"],
+          key,
+          this.$store.state.loadedFiles
+        );
+      }
     },
 
     loadMore() {
@@ -735,6 +743,10 @@ export default {
       } else {
         return false
       }
+    },
+    isTaxonomyElementArray(arrItem) {
+      return !arrItem["$ref"]
+        && this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(arrItem["type"])
     }
   },
   watch: {
@@ -957,7 +969,7 @@ export default {
             }
           } else if (fileReference[key]["type"] == "array" && fileReference[key]["items"]) {
             nodeType = "Array";
-            arr_item = fileReference[key]["items"]["$ref"];
+            arr_item = fileReference[key]["items"];
             arr_lst.push([
               key,
               fileReference[key],
@@ -971,7 +983,8 @@ export default {
               key,
               fileReference[key],
               fileReference,
-              isLocal
+              isLocal,
+              miscUtilities.capitalizeFirstChar(fileReference[key]["type"])
             ]);
           }
         });

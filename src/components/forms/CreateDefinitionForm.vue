@@ -15,6 +15,22 @@
         ></b-form-select>
       </b-form-group>
       <b-form-group
+          label="OpenAPI Element Type"
+          label-for="node-openapi-element-type-input"
+          v-if="definitionType === OBTaxonomyElementDisplayName"
+        >
+        <b-form-select
+          id="node-openapi-element-type-input"
+          v-model="selectedOpenAPIType"
+          :options="$store.state.OpenAPITypes"
+          :disabled="!preSubmit"
+          :state="Boolean(selectedOpenAPIType)"
+        ></b-form-select>
+        <b-form-checkbox
+          v-model="isOBTaxonomyElementArray"
+        >Array</b-form-checkbox>
+      </b-form-group>
+      <b-form-group
         id="node-name-input-group"
         label="Definition name:"
         label-for="node-name-input"
@@ -68,13 +84,7 @@
         id="node-item-type-input-group"
         label="OB Item Type:"
         label-for="node-item-type-input"
-        v-if="
-          definitionType == 'OB Taxonomy Element String' ||
-            definitionType == 'OB Taxonomy Element Number' ||
-            definitionType == 'OB Taxonomy Element Integer' ||
-            definitionType == 'OB Taxonomy Element Boolean' ||
-            definitionType == 'OB Taxonomy Element Array'
-        "
+        v-if="definitionType === OBTaxonomyElementDisplayName"
       >
         <b-form-select
           id="node-item-type-input"
@@ -94,6 +104,7 @@
           id="create-def-item-type-group-input"
           v-model="selectedItemTypeGroup"
           :options="allPossibleItemTypeGroups"
+          :disabled="!preSubmit"
         ></b-form-select>
       </b-form-group>
 
@@ -190,20 +201,14 @@ export default {
       preSubmit: true,
       submissionError: false,
       submissionErrorMsg: "",
-      OBDataTypes: [
-        "OB Object",
-        "OB Array",
-        "OB Taxonomy Element String",
-        "OB Taxonomy Element Number",
-        "OB Taxonomy Element Integer",
-        "OB Taxonomy Element Boolean",
-        "OB Taxonomy Element Array"
-      ],
+      OBTaxonomyElementDisplayName: "OB Element",
       arrayItemSearchTerm: "",
       selectedFileName: null,
       selectedDefnIndex: null,
       selectedDefnName: null,
 
+      selectedOpenAPIType: null,
+      isOBTaxonomyElementArray: false,
       selectedOBItemType: null,
       selectedOBUsageTips: "",
       selectedOBSampleValue: null,
@@ -256,8 +261,12 @@ export default {
         this.submissionErrorMsg = "Please select a file and an array item.";
         this.submissionError = true;
         return;
-      } else if(this.definitionType.substring(0,19) === "OB Taxonomy Element" && !this.selectedOBItemType) {
-        this.submissionErrorMsg = "Please select an OB Item Type."
+      } else if(this.definitionType === this.OBTaxonomyElementDisplayName && (!this.selectedOBItemType || !this.selectedOpenAPIType)) {
+        if (!this.selectedOBItemType) {
+          this.submissionErrorMsg = "Please select an OB Item Type."
+        } else if (!this.selectedOpenAPIType) {
+          this.submissionErrorMsg = "Please select an OpenAPI Element Type";
+        }
         this.submissionError = true;
         return;
       } else if(!this.selectedOBSampleValue || !this.validateSampleValueJSON()) {
@@ -274,6 +283,8 @@ export default {
         arrayItemFileName: this.selectedFileName,
         OBItemType: this.selectedOBItemType,
         OBItemTypeGroup: this.selectedItemTypeGroup,
+        OpenAPIType: this.selectedOpenAPIType,
+        isOBTaxonomyElementArray: this.isOBTaxonomyElementArray,
         OBUsageTips: this.selectedOBUsageTips,
         OBSampleValue: JSON.parse(this.selectedOBSampleValue)
       };
@@ -304,6 +315,13 @@ export default {
     }
   },
   computed: {
+    OBDataTypes() {
+      return [
+        this.OBTaxonomyElementDisplayName,
+        "OB Object",
+        "OB Object Array"
+      ];
+    },
     allItemTypesComputed() {
       let ret_arr = []
       let itemTypeName = ''

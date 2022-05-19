@@ -685,3 +685,8 @@ export function readCookie(name) {
 export function eraseCookie(name) {
 	createCookie(name,"",-1);
 }
+
+export function capitalizeFirstChar(str) {
+  // capitalize the first character of a string
+  return `${str[0].toUpperCase()}${str.slice(1)}`;
+}

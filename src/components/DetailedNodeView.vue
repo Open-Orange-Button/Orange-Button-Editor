@@ -279,13 +279,19 @@ export default {
       }
 
       let defnDoc = this.$store.state.selectedDefnRefFile;
+      let selected = this.$store.state.isSelected;
+      if (selected === "Value") {
+        // 'Value' needs to be translated to 'Value<OpenAPIType>'
+        selected = `Value${this.$store.state.nodeParentOBPrimativeValueType}`;
+      }
+      let selectedDef = defnDoc[selected];
 
-      if (defnDoc[this.$store.state.isSelected]["allOf"]) {
-        for (let i in defnDoc[this.$store.state.isSelected]["allOf"]) {
-          if (defnDoc[this.$store.state.isSelected]["allOf"][i]["$ref"]) {
+      if (selectedDef["allOf"]) {
+        for (let i in selectedDef["allOf"]) {
+          if (selectedDef["allOf"][i]["$ref"]) {
             temp_superClassList.push(
-              defnDoc[this.$store.state.isSelected]["allOf"][i]["$ref"].slice(
-                defnDoc[this.$store.state.isSelected]["allOf"][i][
+              selectedDef["allOf"][i]["$ref"].slice(
+                selectedDef["allOf"][i][
                   "$ref"
                 ].lastIndexOf("/") + 1
               )
@@ -300,10 +306,8 @@ export default {
       }
 
       if (
-        (defnDoc[this.$store.state.isSelected]["type"] == "object" ||
-          defnDoc[this.$store.state.isSelected]["allOf"]) &&
-        !this.$store.state.isTaxonomyElement
-      ) {
+        (selectedDef["type"] == "object" || selectedDef["allOf"]) &&
+          !this.$store.state.isTaxonomyElement) {
         temp_ret_obj = [
           { Attributes: "Name", Values: this.$store.state.nodeName },
           { Attributes: "Documentation", Values: temp_doc },
@@ -322,14 +326,14 @@ export default {
           { Attributes: "Usage Tips", Values: defnOBUsageTips },
           { Attributes: "Sample", Values: defnOBSampleValue }
         ];
-      } else if (defnDoc[this.$store.state.isSelected]["type"] == "array") {
-        arrayItemName = defnDoc[this.$store.state.isSelected]["items"][
-          "$ref"
-        ].slice(
-          defnDoc[this.$store.state.isSelected]["items"]["$ref"].lastIndexOf(
-            "/"
-          ) + 1
-        );
+      } else if (selectedDef["type"] == "array") {
+        let arrayItem = selectedDef["items"];
+        let arrayItemName;
+        if (arrayItem["type"]) {
+          arrayItemName = miscUtilities.capitalizeFirstChar(arrayItem["type"]);
+        } else {
+          arrayItemName = arrayItem["$ref"].slice(selectedDef["items"]["$ref"].lastIndexOf("/") + 1);
+        }
 
         temp_ret_obj = [
           { Attributes: "Name", Values: this.$store.state.nodeName },
@@ -345,7 +349,8 @@ export default {
           { Attributes: "Usage Tips", Values: defnOBUsageTips }
         ];
       }
-
+      let temp_ret_obj_type_attribute = temp_ret_obj.filter(obj => obj["Attributes"] === "Type")[0];
+      temp_ret_obj_type_attribute["Values"] = miscUtilities.capitalizeFirstChar(temp_ret_obj_type_attribute["Values"]);
       let arr = temp_ret_obj;
 
       return arr;
