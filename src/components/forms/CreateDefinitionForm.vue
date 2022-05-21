@@ -19,7 +19,7 @@
         <b-col sm="auto">
           <v-icon name="info-circle" scale="1.5" id="info-tooltip-target" />
           <b-tooltip target="info-tooltip-target" triggers="click hover" placement="right">
-            <b>{{ definitionType }}</b>: <span v-html="OBDataTypeInfo[definitionType]" />
+            <b>{{ definitionType ? definitionType + ": " : "" }}</b><span v-html="OBDataTypeInfo[definitionType]" />
           </b-tooltip>
         </b-col>
         </b-row>
@@ -341,7 +341,7 @@ export default {
                             "The array item is chosen when the array is defined.")
       };
       info[this.OBTaxonomyElementDisplayName] = ("an object whose fields are primitives.<br>" + //: Value, Units, StartTime, EndTime, Decimals, and Precision.<br>" +
-                                                 "All primitives are strings except Value which is one of these OpenAPI types: boolean, integer, number, string, and array.<br>" +
+                                                 "All primitives are strings except Value which is one of these OpenAPI types: boolean, integer, number, string, or array.<br>" +
                                                  "To define Value as an array, choose one of the other four types and check the 'Array' checkbox.");
       return info;
     },
