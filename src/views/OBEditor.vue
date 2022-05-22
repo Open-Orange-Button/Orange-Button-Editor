@@ -435,38 +435,6 @@ export default {
     LoadInDefinition,
     EditItemTypesMain
   },
-  created() {
-    // if query params, create cookie
-    // query param form = ?views=
-    if (Object.keys(this.$route.query).length !== 0) {
-      miscUtilities.eraseCookie('viewObjs')
-      let view_objects = this.$route.query['view']
-      view_objects = view_objects.split(',')
-      for (let i in view_objects) {
-        this.$store.commit("addViewObj", {
-          el: view_objects[i],
-          mode: 'create_cookie'
-        })
-      }
-    } else {
-      let viewObjsArr = JSON.parse(miscUtilities.readCookie('viewObjs'))
-      if (viewObjsArr == null) {
-        viewObjsArr = []
-      }
-      // if you have cookie, read it, if not switch to edit mode
-      if (viewObjsArr.length != 0) {
-        for (let i in viewObjsArr) {
-          this.$store.commit("addViewObj", {
-            el: viewObjsArr[i],
-            mode: 'init'
-          });
-        }
-      } else {
-        this.$store.commit('clearEditorView')
-        this.$store.commit('changeViewerMode', 'Edit Mode')
-      }
-    }
-  },
   data() {
     return {
       file: null,
@@ -496,30 +464,13 @@ export default {
       missingRefsRequired: [],
       showMissingRefsErr: false,
       treeSearchTerm: "",
-      URLParameters: {
-        view: "",
-        version: ""
-      }
+      latestTaxonomyURL: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json"
     };
   },
   mounted() {
     this.processURLParameters(this.$route.query);
   },
   methods: {
-    processURLParameters(query) {
-      this.URLParameters.version = query["version"] || "";
-      let version = this.URLParameters.version;
-      let isValidVersion = (version === "" || /\d{4}\.\d{1,2}\.\d{1,2}/.test(version));
-      if (!(query["view"] && isValidVersion)) {
-        return;
-      }
-      let url = this.GitHubTaxonomyURL;
-      let fileName = url.substring(url.lastIndexOf('/') + 1);
-      this.newFileForm.fileTitle = fileName;
-      this.newFileForm.fileName = fileName;
-      fetch(url).then(res => res.json())
-        .then(json => this.loadFileFromJSON(json, fileName));
-    },
     getArrItemType(arrItem) {
       if (this.isTaxonomyElementArray(arrItem)) {
         return arrItem["type"];
@@ -717,6 +668,20 @@ export default {
     isTaxonomyElementArray(arrItem) {
       return !arrItem["$ref"]
         && this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(arrItem["type"])
+    },
+    processURLParameters(query) {
+      if (!query["view"]) {
+        this.$store.commit('clearEditorView')
+        this.$store.commit('changeViewerMode', 'Edit Mode')
+        return;
+      }
+      query["view"].split(',').forEach(obj => this.$store.commit("addViewObj", { el: obj, mode: "init" }));
+      let url = this.latestTaxonomyURL;
+      let fileName = url.substring(url.lastIndexOf('/') + 1);
+      this.newFileForm.fileTitle = fileName;
+      this.newFileForm.fileName = fileName;
+      fetch(url).then(res => res.json())
+        .then(json => this.loadFileFromJSON(json, fileName));
     }
   },
   watch: {
@@ -830,14 +795,6 @@ export default {
     }
   },
   computed: {
-    GitHubTaxonomyURL() {
-      let version = this.URLParameters.version;
-      if (version) {
-        version = `-${version.replace(/\./g, '-')}`;
-      }
-      let GitHubURL = `https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI${version}.json`;
-      return GitHubURL;
-    },
     fileTabs() {
       return this.$store.state.fileTabs;
     },
