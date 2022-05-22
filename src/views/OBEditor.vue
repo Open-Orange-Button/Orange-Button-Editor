@@ -183,7 +183,7 @@
                 <b-button
                   variant="primary"
                   class="float-right"
-                  @click="loadFile"
+                  @click="loadFileFromFile"
                   :disabled="!file"
                   v-if="tabIndexFileUpload == 0"
                 >
@@ -421,7 +421,9 @@ import EditDefinition from "../components/EditDefinition/EditDefinition";
 import EditItemTypesMain from "../components/ItemTypes/EditItemTypesMain"
 import * as miscUtilities from "../utils/miscUtilities";
 import * as JSONEditor from "../utils/JSONEditor.js";
+import newFileTemplate from "../assets/OB-OpenAPI-New-File-Template.json";
 import FileSaver from "file-saver";
+import { version } from "process";
 
 export default {
   components: {
@@ -438,7 +440,7 @@ export default {
     // query param form = ?views=
     if (Object.keys(this.$route.query).length !== 0) {
       miscUtilities.eraseCookie('viewObjs')
-      let view_objects = this.$route.query['views']
+      let view_objects = this.$route.query['view']
       view_objects = view_objects.split(',')
       for (let i in view_objects) {
         this.$store.commit("addViewObj", {
@@ -493,10 +495,31 @@ export default {
       },
       missingRefsRequired: [],
       showMissingRefsErr: false,
-      treeSearchTerm: ""
+      treeSearchTerm: "",
+      URLParameters: {
+        view: "",
+        version: ""
+      }
     };
   },
+  mounted() {
+    this.processURLParameters(this.$route.query);
+  },
   methods: {
+    processURLParameters(query) {
+      this.URLParameters.version = query["version"] || "";
+      let version = this.URLParameters.version;
+      let isValidVersion = (version === "" || /\d{4}\.\d{1,2}\.\d{1,2}/.test(version));
+      if (!(query["view"] && isValidVersion)) {
+        return;
+      }
+      let url = this.GitHubTaxonomyURL;
+      let fileName = url.substring(url.lastIndexOf('/') + 1);
+      this.newFileForm.fileTitle = fileName;
+      this.newFileForm.fileName = fileName;
+      fetch(url).then(res => res.json())
+        .then(json => this.loadFileFromJSON(json, fileName));
+    },
     getArrItemType(arrItem) {
       if (this.isTaxonomyElementArray(arrItem)) {
         return arrItem["type"];
@@ -522,51 +545,16 @@ export default {
       }
     },
     createFile() {
-      let defnFileTitle = this.newFileForm.fileTitle;
-      let defnFileDescription = this.newFileForm.fileDescription;
-      let defnFileName = this.newFileForm.fileName;
-
-      let check_duplicate_file = false;
-
-      if (!defnFileTitle) {
-        defnFileTitle = "Placeholder Title";
-      }
-
-      if (!defnFileDescription) {
-        defnFileDescription = "Placeholder Description";
-      }
-
-      if (!defnFileDescription) {
-        defnFileName = "OB-OpenAPI-DefnFile.json";
-      }
-
-      let newFileObj = JSONEditor.createNewDefnFile(
-        defnFileTitle,
-        defnFileDescription,
-        defnFileName
-      );
-
-      for (let i in this.$store.state.fileTabs) {
-        if (this.$store.state.fileTabs[i].fileName == newFileObj.fileName) {
-          check_duplicate_file = true;
-        }
-      }
-
-      if (check_duplicate_file) {
-        this.fileAlreadyOpened = true;
-      } else {
-        this.$store.state.fileTabs.push(newFileObj);
-        this.showAddFileModal = false;
-        this.$store.state.loadedFiles[this.newFileForm.fileName] = newFileObj;
-      }
+      let json = newFileTemplate;
+      let defnFileTitle = this.newFileForm.fileTitle || "Placeholder Title";
+      let defnFileDescription = this.newFileForm.fileDescription || "Placeholder Description";
+      let defnFileName = this.newFileForm.fileName || "0B-OpenAPI-DefnFile.json";
+      json["info"]["title"] = defnFileTitle;
+      json["info"]["description"] = defnFileDescription;
+      this.loadFileFromJSON(json, defnFileName);
     },
-
     fromSuperClass(childNode) {
-      if (childNode["fromSuperClass"]) {
-        return true;
-      } else {
-        return false;
-      }
+      return Boolean(childNode["fromSuperClass"]);
     },
     exportFile() {
       this.$store.commit("exportFile");
@@ -648,50 +636,36 @@ export default {
       this.showMissingRefsErr = false;
       this.fileAlreadyOpened = false;
     },
-    loadFile() {
+    loadFileFromJSON(json, fileName) {
       let refsRequired = [];
       this.missingRefsRequired = [];
       this.showMissingRefsErr = false;
-      let file_obj = {
-        fileName: this.file.name
-      };
+      let file_obj = { fileName };
+      let itemTypes = json["x-ob-item-types"];
+      let itemTypeGroups = json["x-ob-item-type-groups"];
 
+      file_obj["fullFileForExport"] = json;
+      file_obj["file"] = json.components.schemas;
+      file_obj["item_types"] = itemTypes || {}
+      file_obj["item_type_groups"] = itemTypeGroups || {};
+
+      this.tryLoadFile(file_obj);
+    },
+    isFileOpen(fileName) {
+      return this.$store.state.fileTabs.some(file => file.fileName === fileName);
+    },
+    tryLoadFile(file_obj) {
+      if (this.isFileOpen(file_obj.fileName)) {
+        this.fileAlreadyOpened = true;
+      } else {
+        this.showAddFileModal = false;
+        this.$store.commit("loadFile", file_obj);
+      }
+    },
+    loadFileFromFileSystem() {
       let reader = new FileReader();
-      let check_duplicate_file = false;
-
       reader.readAsText(this.file);
-      reader.onload = () => {
-        file_obj["fullFileForExport"] = JSON.parse(reader.result);
-        file_obj["file"] = file_obj["fullFileForExport"].components.schemas;
-
-        // todo: refactor to make into a function that is also used in create() 
-        // stores item types and item types groups of loaded file
-        if (file_obj["fullFileForExport"]["x-ob-item-types"]) {
-          file_obj["item_types"] = file_obj["fullFileForExport"]["x-ob-item-types"]
-        } else {
-          file_obj["item_types"] = {}
-        }
-
-        if (file_obj["fullFileForExport"]["x-ob-item-type-groups"]) {
-          file_obj["item_type_groups"] = file_obj["fullFileForExport"]["x-ob-item-type-groups"]
-        } else {
-          file_obj["item_type_groups"] = {}
-        }
-
-        for (let i in this.$store.state.fileTabs) {
-          if (this.$store.state.fileTabs[i].fileName == file_obj.fileName) {
-            check_duplicate_file = true;
-          }
-        }
-
-        if (check_duplicate_file) {
-          this.fileAlreadyOpened = true;
-        } else {
-          this.$store.state.fileTabs.push(file_obj);
-          this.showAddFileModal = false;
-          this.$store.commit("loadFile", file_obj);
-        }
-      };
+      reader.onload = () => this.loadFileFromJSON(JSON.parse(reader.result), this.file.name);
     },
     cancelLoadModal() {
       this.showAddFileModal = false;
@@ -860,6 +834,14 @@ export default {
     }
   },
   computed: {
+    GitHubTaxonomyURL() {
+      let version = this.URLParameters.version;
+      if (version) {
+        version = `-${version.replace(/\./g, '-')}`;
+      }
+      let GitHubURL = `https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI${version}.json`;
+      return GitHubURL;
+    },
     fileTabs() {
       return this.$store.state.fileTabs;
     },
