@@ -347,7 +347,7 @@ export default {
             let valueRef = this.children["Value"]["$ref"];
             translatedKey = valueRef.substring(valueRef.lastIndexOf("/") + 1);
             // Extract the type of the Value primitive. Note 'value' has one 'e'.
-            this.OBPrimativeValueType = translatedKey.substring(translatedKey.indexOf('e') + 1);
+            this.OBPrimativeValueType = translatedKey;
           }
           let childDef = fileReference[translatedKey];
 

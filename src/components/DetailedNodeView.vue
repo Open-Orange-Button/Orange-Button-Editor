@@ -282,7 +282,7 @@ export default {
       let selected = this.$store.state.isSelected;
       if (selected === "Value") {
         // 'Value' needs to be translated to 'Value<OpenAPIType>'
-        selected = `Value${this.$store.state.nodeParentOBPrimativeValueType}`;
+        selected = this.$store.state.nodeParentOBPrimativeValueType;
       }
       let selectedDef = defnDoc[selected];
 
@@ -341,10 +341,10 @@ export default {
           { Attributes: "Array Item", Values: arrayItemName },
           { Attributes: "Usage Tips", Values: defnOBUsageTips }
         ];
-      } else {
+      } else { // primitives
         temp_ret_obj = [
           { Attributes: "Name", Values: this.$store.state.nodeName },
-          { Attributes: "Type", Values: (this.$store.state.nodeParentOBPrimativeValueType || this.$store.state.nodeType) },
+          { Attributes: "Type", Values: selectedDef["type"] },
           { Attributes: "Documentation", Values: temp_doc },
           { Attributes: "Usage Tips", Values: defnOBUsageTips }
         ];
