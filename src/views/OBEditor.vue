@@ -236,6 +236,19 @@
                           </b-button>
                         </span>
                       </div>
+                      <div style="padding: 0.8em">
+                        The latest version of the OB OpenAPI Taxonomy is available on
+                        <a :href="GitHubTaxonomyUser" target="_blank">
+                          <b>GitHub</b>
+                        </a>.
+                        View it in the OB Editor using these links:
+                        <li v-for="obj in latestTaxonomyViewObjLinks" style="padding-left: 1em; padding-right: 1em">
+                          <a :href="editorViewLink(obj.parameter)" target="_blank">
+                            <b>{{ obj.name }}</b>
+                          </a>
+                        </li>
+                        Note: To enter view mode or edit mode, click the eye or pencil icon in the top-right corner.
+                      </div>
                       <div class="error-container">
                         <b-alert
                           id="file-duplicate-error"
@@ -464,7 +477,9 @@ export default {
       missingRefsRequired: [],
       showMissingRefsErr: false,
       treeSearchTerm: "",
-      latestTaxonomyURL: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json"
+      GitHubTaxonomyUser: "https://github.com/Open-Orange-Button/Orange-Button-Taxonomy/blob/main/Master-OB-OpenAPI.json",
+      GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
+      latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}]
     };
   },
   mounted() {
@@ -670,18 +685,35 @@ export default {
         && this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(arrItem["type"])
     },
     processURLParameters(query) {
+      this.$store.commit('clearEditorView');
+
       if (!query["view"]) {
-        this.$store.commit('clearEditorView')
-        this.$store.commit('changeViewerMode', 'Edit Mode')
+        this.$store.commit('changeViewerMode', 'Edit Mode');
         return;
       }
-      query["view"].split(',').forEach(obj => this.$store.commit("addViewObj", { el: obj, mode: "init" }));
-      let url = this.latestTaxonomyURL;
+
+      let viewObjs = query["view"].split(',');
+
+      if (viewObjs.includes('all')) {
+        this.$store.commit('changeViewerMode', 'Edit Mode');
+      } else {
+        query["view"].split(',').forEach(obj => this.$store.commit("addViewObj", { el: obj, mode: "init" }));
+      }
+
+      let url = this.GitHubTaxonomyRaw;
       let fileName = url.substring(url.lastIndexOf('/') + 1);
       this.newFileForm.fileTitle = fileName;
       this.newFileForm.fileName = fileName;
+
       fetch(url).then(res => res.json())
         .then(json => this.loadFileFromJSON(json, fileName));
+    },
+    editorViewLink(objName) {
+      let currentURL = window.location.href;
+      if (currentURL.indexOf("?") > 0) {
+        currentURL = currentURL.substring(0, currentURL.indexOf("?"));
+      }
+      return `${currentURL}?view=${objName}`;
     }
   },
   watch: {
