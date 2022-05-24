@@ -17,6 +17,8 @@ export default new Vuex.Store({
     isSelected: null,
     nodeName: null,
     nodeType: null,
+    nodeOBPrimativeValueType: "",
+    nodeParentOBPrimativeValueType: "",
     nodeParent: null,
     nodeParentTrail: null,
     nodeDescription: null,
@@ -270,7 +272,7 @@ export default new Vuex.Store({
       let selected = state.isSelected;
       if (selected === "Value") {
         // 'Value' needs to be translated to 'Value<OpenAPIType>'
-        selected = `Value${state.nodeParentOBPrimativeValueType}`;
+        selected = state.nodeParentOBPrimativeValueType;
       }
 
       if (state.selectedDefnRefFile[selected]["allOf"]) {
