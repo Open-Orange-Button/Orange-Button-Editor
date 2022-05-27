@@ -640,6 +640,7 @@ export default new Vuex.Store({
     // when user loads in a file, it is put into the loadedFile object
     // problem: what if someone loads in a file, references it in a new fiile, then unloads the old file. now the new file cant reference the old
     loadFile(state, file) {
+      state.fileTabs.push(file);
       state.loadedFiles[file.fileName] = file;
     },
     removeFile(state, fileName) {
