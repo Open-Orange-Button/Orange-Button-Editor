@@ -633,7 +633,7 @@ export default {
       return defnRef;
     },
     defnRefParentTrail(nodeName, parent_trail) {
-      return nodeName + "-" + parent_trail;
+      return { trail: [...parent_trail.trail, nodeName], fileName: parent_trail.fileName };
     },
     addViewObj(el) {
       this.viewObjFinal = true

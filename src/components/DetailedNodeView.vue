@@ -146,9 +146,9 @@ export default {
     exportSampleJSON() {
       let fileName = this.$store.state.currentFile.fileName; 
       let parentTrail = this.$store.state.nodeParentTrail;
-      let name = parentTrail.substring(0, parentTrail.indexOf("-"));
+      let name = this.$store.state.nodeName;
       this.$store.commit("setFileToExport", {
-        fileToExport: miscUtilities.getSampleJSON(fileName, this.$store.state, parentTrail),
+        fileToExport: miscUtilities.getSampleJSON({ fileName, state: this.$store.state, parentTrail }),
         fileToExportName: name + " from " + fileName,
         exportModalHeader: "Create Sample JSON of " + name
       });

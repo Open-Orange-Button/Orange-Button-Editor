@@ -560,89 +560,66 @@ export function wildcardSearch(searchSubject, searchTerm) {
   return searchSubject.indexOf(searchTerm) == 0;
 }
 
-export function getSampleJSON(fileName, state, name) {
-  let fileItems = state.loadedFiles[fileName]["file"];
+export function getOpenAPITypes() {
+  return ['number', 'string', 'integer', 'boolean'];
+}
+
+export function allPrimitiveNames() {
+  let OpenAPITypes = getOpenAPITypes();
+  let ValuePrimitives = OpenAPITypes.map(type => `Value${capitalizeFirstChar(type)}`);
+  let ValueArrayPrimitives = OpenAPITypes.map(type => `ValueArray${capitalizeFirstChar(type)}`);
+  let nonValuePrimitives = ['Decimals', 'EndTime', 'Precision', 'StartTime', 'Unit'];
+  let allPrimitives = new Set(ValuePrimitives.concat(ValueArrayPrimitives).concat(nonValuePrimitives));
+  return allPrimitives;
+}
+
+export function allTaxonomyElementNames() {
+  let OpenAPITypes = getOpenAPITypes();
+  let taxonomyElements = OpenAPITypes.map(type => `TaxonomyElement${capitalizeFirstChar(type)}`);
+  let taxonomyElementArrays = OpenAPITypes.map(type => `TaxonomyElementArray${capitalizeFirstChar(type)}`);
+  let allTaxonomyElements = new Set(taxonomyElements.concat(taxonomyElementArrays));
+  return allTaxonomyElements;
+}
+
+export function getSampleJSON({ fileName, state, parentTrail }) {
   let exportJSON = {};
-  if (name) {
-    exportJSON = sourceFileName(name, fileItems, state);
+  if (parentTrail) {
+    let defnName = parentTrail.trail[parentTrail.trail.length - 1];
+    exportJSON[defnName] = buildSampleJSON({ defnName, fileName, state });
   } else {
-    Object.keys(fileItems).sort().forEach(itemName => {
-      exportJSON[itemName] = buildSampleJSON(itemName, fileItems, state);
-    });
+    let fileDefns = state.loadedFiles[fileName].file;
+    let defnsToIgnore = new Set([...allPrimitiveNames(), ...allTaxonomyElementNames()]);
+    Object.keys(fileDefns).sort().filter(defnName => !defnsToIgnore.has(defnName))
+      .forEach(defnName => { exportJSON[defnName] = buildSampleJSON({ defnName, fileName, state, parentTrail }); });
   }
   return exportJSON;
 }
 
-export function substringNameFromParentTrail(name) {
-  return name.substring(0, name.indexOf("-"));
-}
-
-export function sourceFileName(name, fileItems, state) {
-  let parent = name.substring(name.indexOf("-") + 1);
-  let children = [substringNameFromParentTrail(name)];
-  while(substringNameFromParentTrail(parent) !== "root") {
-    children.push(substringNameFromParentTrail(parent));
-    parent = parent.substring(parent.indexOf("-") + 1);
-  }
-  let exportJSON = {};
-  exportJSON[children[children.length - 1]] = buildSampleJSON(children[children.length - 1], fileItems, state, children.length !== 1, children, children.length - 1);
-  return exportJSON;
-}
-
-export function buildSampleJSON(name, fileItems, state, searchMode, children, index) {
-  let item = fileItems[name];
-  let result = {};
-  if (item["allOf"]) {
-    let ref = item["allOf"][0]["$ref"];
-    result = getItemJSON(ref, item, fileItems, state, searchMode, children, index, name);
-  } else if (item["type"] === "array" && item["items"]) {
-    let ref = item["items"]["$ref"];
-    result = [];
-    result.push(getItemJSON(ref, item, fileItems, state, searchMode, children, index, name));
-  } else if (item["type"] === "object") {
-    Object.keys(item["properties"]).sort().forEach(prop => {
-        if (searchMode && children[index - 1] !== prop) {
-          return;
-        }
-        let ref = item["properties"][prop]["$ref"];
-        result[prop] = getItemJSON(ref, item, fileItems, state, searchMode, children, index, name);
-      });
-  } else if (item["$ref"]) {
-    let ref = item["$ref"];
-    result = getItemJSON(ref, item, fileItems, state, searchMode, children, index, name);
-  } else {
-    result = "";
-  }
-  return result;
-}
-
-export function getItemJSON(ref, item, fileItems, state, searchMode, children, index, name) {
-  let refFileName = ref.substring(0, ref.indexOf("#"));
-  let refItemName = ref.substring(ref.lastIndexOf("/") + 1);
-  if (refItemName.includes("Taxonomy")) {
-    if (searchMode && children[0] !== name) {
-      let result = {};
-      result[children[0]] = "";
-      return result;
+export function buildSampleJSON({ defnName, fileName, state }) {
+  let sampleJSON = {};
+  let defn = state.loadedFiles[fileName].file[defnName];
+  let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
+  let fileNameFromRef = ref => ref.substring(0, ref.indexOf('#')) || fileName;
+  let recurse = ref => buildSampleJSON({ defnName: defnNameFromRef(ref), fileName: fileNameFromRef(ref), state });
+  let addSubDefns = refList => refList.sort().forEach(ref => { sampleJSON[defnNameFromRef(ref)] = recurse(ref); });
+  if (defn.allOf) { // taxonomy element or has inheritance
+    let isTaxonomyElement = defn.allOf.some(defn => defn.$ref && defn.$ref.includes('TaxonomyElement'));
+    if (isTaxonomyElement) {
+      sampleJSON = defn.allOf[1]['x-ob-sample-value'];
+    } else {
+      // a schema definition can only inherit from one other schema definition
+      let inherited = defn.allOf.filter(def => def.$ref)[0];
+      sampleJSON = recurse(inherited.$ref);
+      let refLists = defn.allOf.filter(def => !def.$ref).map(def => Object.values(def.properties).map(v => v.$ref));
+      refLists.forEach(list => addSubDefns(list));
     }
-    return item["allOf"][1]["x-ob-sample-value"];
-  } else {
-    if(refFileName) {
-      fileItems = state.loadedFiles[refFileName]["file"];
-    }
-    if (searchMode) {
-      if (item["type"] !== "array") {
-        if (!item["$ref"]) {
-          index--;
-        }
-        refItemName = children[index];
-      }
-      if (index === 0) {
-        searchMode = false;
-      }
-    }
-    return buildSampleJSON(refItemName, fileItems, state, searchMode, children, index, name);
+  } else if (defn.properties) { // no inheritance
+    let refList = Object.values(defn.properties).map(v => v.$ref);
+    addSubDefns(refList);
+  } else if (defn.items) { // array of another schema definition
+    sampleJSON = [recurse(defn.items.$ref)];
   }
+  return sampleJSON;
 }
 
 // filters list for View Objects
