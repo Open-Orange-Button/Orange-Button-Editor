@@ -78,19 +78,6 @@
       </b-form-group>
 
       <b-form-group
-        id="node-sample-value-input-group"
-        label="Sample:"
-        label-for="node-sample-value-input"
-      >
-        <b-form-textarea
-          id="node-sample-value-input"
-          v-model="selectedOBSampleValue"
-          :state="Boolean(selectedOBSampleValue) ? validateSampleValueJSON(selectedOBSampleValue) : false"
-          :disabled="!preSubmit"
-        ></b-form-textarea>
-      </b-form-group>
-
-      <b-form-group
         id="node-item-type-input-group"
         label="OB Item Type:"
         label-for="node-item-type-input"
@@ -116,6 +103,37 @@
           :options="allPossibleItemTypeGroups"
           :disabled="!preSubmit"
         ></b-form-select>
+      </b-form-group>
+
+      <b-form-group
+        id="node-sample-value-input-group"
+        v-if="definitionType === OBTaxonomyElementDisplayName"
+      >
+        <b-form-checkbox
+          v-model="addSampleValue"
+        >Add Sample Value
+        </b-form-checkbox>
+        <div v-if="addSampleValue">
+          <div v-for="[name, data] in Object.entries(sampleValuePrimitives)
+                                            .sort((a, b) => a[1].order - b[1].order)
+                                            .filter(p => sampleValueFormContext[p[0]].show)">
+            {{ `${sampleValueFormContext[name].isArray ? 'Array Item ' : ''}${name}:` }}
+              <b-form-select
+                v-if="name === 'Value' && selectedOBItemTypeType === 'enums'"
+                v-model="data.value"
+                :options="sampleValueValueOptions"
+                :state="Boolean(data.value)" />
+              <b-form-select
+                v-else-if="name === 'Unit'"
+                v-model="data.value"
+                :options="sampleValueUnitOptions"
+                :state="Boolean(data.value)" />
+              <b-form-input
+                v-else
+                v-model="data.value"
+                :state="Boolean(data.value) || !sampleValueFormContext[name].isRequired" />
+          </div>
+        </div>
       </b-form-group>
 
       <!-- <div class="enum-or-unit-table-container" v-if="selectedOBItemTypeType">              
@@ -231,7 +249,14 @@ export default {
           { key: "enumOrUnitID", label: "Enum ID", thStyle: { width: "150px" } }, 
           { key: "enumOrUnitLabel", label: "Enum Label", thStyle: { width: "150px" } },
           { key: "enumOrUnitDescription", label: "Enum Description"}
-      ]
+      ],
+      addSampleValue: false,
+      sampleValuePrimitives: { Decimals: { order: 3, value: '' }, 
+                               EndTime: { order: 6, value: '' },
+                               Precision: { order: 4, value: '' },
+                               StartTime: { order: 5, value: '' },
+                               Unit: { order: 2, value: '' },
+                               Value: { order: 1, value: '' } }
     };
   },
   methods: {
@@ -507,6 +532,32 @@ export default {
     },
     allPossibleItemTypeGroups() {
       return this.possibleItemTypeGroups
+    },
+    sampleValueFormContext() {
+      let OpenAPINumberTypes = ['Number', 'Integer'];
+      return { Decimals: { isArray: false, isRequired: false, show: OpenAPINumberTypes.includes(this.selectedOpenAPIType) },
+               EndTime: { isArray: false, isRequired: false, show: true },
+               Precision: { isArray: false, isRequired: false, show: OpenAPINumberTypes.includes(this.selectedOpenAPIType) },
+               StartTime: { isArray: false, isRequired: false, show: true },
+               Unit: { isArray: false, isRequired: this.selectedOBItemTypeType === 'units', show: this.selectedOBItemTypeType === 'units' } ,
+               Value: { isArray: this.isOBTaxonomyElementArray, isRequired: true, show: true } };
+    },
+    sampleValueValueOptions() {
+      if (this.selectedOBItemTypeType === 'enums') {
+        return this.itemTypeEnumsOrUnitsComputed.map(e => {
+          return { value: e.enumOrUnitID, text: `${e.enumOrUnitLabel} (${e.enumOrUnitID})` };
+        });
+      }
+      return [];
+
+    },
+    sampleValueUnitOptions() {
+      if (this.selectedOBItemTypeType === 'units') {
+        return this.itemTypeEnumsOrUnitsComputed.map(u => {
+          return { value: u.enumOrUnitID, text: `${u.enumOrUnitLabel} (${u.enumOrUnitID})` };
+        });
+      }
+      return [];
     }
   },
   watch: {
