@@ -339,7 +339,7 @@ export default {
         arrayItemFileName: this.selectedFileName,
         OBItemType: this.selectedOBItemType,
         OBItemTypeGroup: this.selectedItemTypeGroup,
-        OpenAPIType: this.selectedOpenAPIType,
+        OpenAPIType: miscUtilities.capitalizeFirstChar(this.selectedOpenAPIType),
         isOBTaxonomyElementArray: this.isOBTaxonomyElementArray,
         OBUsageTips: this.selectedOBUsageTips,
         OBSampleValue: this.buildSampleValueObject()
@@ -402,7 +402,7 @@ export default {
       if (type === 'number') {
         return !isNaN(value);
       } else if (type === 'string') {
-        return typeof value === 'string';
+        return typeof value === 'string' && value.length > 0;
       } else if (type === 'boolean') {
         return typeof value === 'boolean';
       } else if (type === 'integer') {
