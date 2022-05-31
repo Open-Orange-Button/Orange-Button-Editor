@@ -681,8 +681,7 @@ export default {
       return this.$store.state.viewObjs.includes(el);
     },
     isTaxonomyElementArray(arrItem) {
-      return !arrItem["$ref"]
-        && this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(arrItem["type"])
+      return !arrItem["$ref"] && miscUtilities.getOpenAPITypes().includes(arrItem["type"]);
     },
     processURLParameters(query) {
       this.$store.commit('clearEditorView');

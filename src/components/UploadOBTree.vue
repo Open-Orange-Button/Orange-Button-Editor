@@ -274,7 +274,7 @@ export default {
   },
   computed: {
     arrayItemNameFromRef() {
-      if (this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(this.arrayItemRef)) {
+      if (miscUtilities.getOpenAPITypes().includes(this.arrayItemRef)) {
         return miscUtilities.capitalizeFirstChar(this.arrayItemRef);
       }
       return this.arrayItemRef.slice(this.arrayItemRef.lastIndexOf("/") + 1);
@@ -651,8 +651,7 @@ export default {
       this.$store.commit("reRenderList")
     },
     isTaxonomyElementArray(arrItem) {
-      return !arrItem["$ref"]
-        && this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(arrItem["type"])
+      return !arrItem["$ref"] && miscUtilities.getOpenAPITypes().includes(arrItem["type"]);
     }
   },
   watch: {

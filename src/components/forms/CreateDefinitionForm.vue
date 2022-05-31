@@ -14,6 +14,7 @@
             :options="OBDataTypes"
             :disabled="!preSubmit"
             :state="Boolean(definitionType)"
+            @change="formatForm"
           ></b-form-select>
         </b-col>
         <b-col sm="auto">
@@ -32,12 +33,14 @@
         <b-form-select
           id="node-openapi-element-type-input"
           v-model="selectedOpenAPIType"
-          :options="$store.state.OpenAPITypes"
+          :options="OpenAPITypeOptions"
           :disabled="!preSubmit"
           :state="Boolean(selectedOpenAPIType)"
+          @change="formatForm"
         ></b-form-select>
         <b-form-checkbox
           v-model="isOBTaxonomyElementArray"
+          :disabled="!preSubmit"
         >Array</b-form-checkbox>
       </b-form-group>
       <b-form-group
@@ -89,6 +92,7 @@
           :options="allItemTypesComputed"
           :disabled="!preSubmit"
           :state="Boolean(selectedOBItemType)"
+          @change="formatForm"
         ></b-form-select>
       </b-form-group>
 
@@ -111,6 +115,7 @@
       >
         <b-form-checkbox
           v-model="addSampleValue"
+          :disabled="!preSubmit"
         >Add Sample Value
         </b-form-checkbox>
         <div v-if="addSampleValue">
@@ -118,20 +123,24 @@
                                             .sort((a, b) => a[1].order - b[1].order)
                                             .filter(p => sampleValueFormContext[p[0]].show)">
             {{ `${sampleValueFormContext[name].isArray ? 'Array Item ' : ''}${name}:` }}
-              <b-form-select
-                v-if="name === 'Value' && selectedOBItemTypeType === 'enums'"
+              <component
+                v-if="name === 'Value'"
+                :is="sampleValueValueOptions.length > 0 ? 'b-form-select' : 'b-form-input'"
                 v-model="data.value"
                 :options="sampleValueValueOptions"
-                :state="Boolean(data.value)" />
+                :state="validateByOpenAPIType(data.value)"
+                :disabled="!preSubmit" />
               <b-form-select
                 v-else-if="name === 'Unit'"
                 v-model="data.value"
                 :options="sampleValueUnitOptions"
-                :state="Boolean(data.value)" />
+                :state="Boolean(data.value)"
+                :disabled="!preSubmit" />
               <b-form-input
                 v-else
                 v-model="data.value"
-                :state="Boolean(data.value) || !sampleValueFormContext[name].isRequired" />
+                :state="Boolean(data.value) || !sampleValueFormContext[name].isRequired"
+                :disabled="!preSubmit" />
           </div>
         </div>
       </b-form-group>
@@ -251,12 +260,7 @@ export default {
           { key: "enumOrUnitDescription", label: "Enum Description"}
       ],
       addSampleValue: false,
-      sampleValuePrimitives: { Decimals: { order: 3, value: '' }, 
-                               EndTime: { order: 6, value: '' },
-                               Precision: { order: 4, value: '' },
-                               StartTime: { order: 5, value: '' },
-                               Unit: { order: 2, value: '' },
-                               Value: { order: 1, value: '' } }
+      sampleValuePrimitives: this.getSampleValueData()
     };
   },
   methods: {
@@ -279,37 +283,54 @@ export default {
       this.preSubmit = true;
       this.$store.commit("showNoView");
     },
-    createElement() {
+    validateForm() {
       if(!this.definitionType) {
         this.submissionErrorMsg = "Please select a definition type.";
-        this.submissionError = true;
-        return;
+        return false;
       } else if(!this.definitionName) {
         this.submissionErrorMsg = "Please enter a definition name.";
-        this.submissionError = true;
-        return;
+        return false;
       } else if(!this.definitionDescription) {
         this.submissionErrorMsg = "Please enter a definition description.";
-        this.submissionError = true;
-        return;
+        return false;
       } else if(this.definitionType === "OB Object Array" && (!this.selectedFileName || !this.selectedDefnName)) {
         this.submissionErrorMsg = "Please select a file and an array item.";
-        this.submissionError = true;
-        return;
+        return false;
       } else if(this.definitionType === this.OBTaxonomyElementDisplayName && (!this.selectedOBItemType || !this.selectedOpenAPIType)) {
         if (!this.selectedOBItemType) {
           this.submissionErrorMsg = "Please select an OB Item Type."
         } else if (!this.selectedOpenAPIType) {
           this.submissionErrorMsg = "Please select an OpenAPI Element Type";
         }
-        this.submissionError = true;
-        return;
-      } else if(!this.selectedOBSampleValue || !this.validateSampleValueJSON()) {
-        this.submissionErrorMsg = "Invalid SampleValue JSON."
+        return false;
+      }
+      // else if(!this.selectedOBSampleValue || !this.validateSampleValueJSON()) {
+      //   this.submissionErrorMsg = "Invalid SampleValue JSON."
+      //   return;
+      // }
+
+      if (this.addSampleValue) {
+        let missingSampleValuePrimitives = Object.entries(this.sampleValueFormContext)
+          .filter(([primitive, context]) => context.isRequired && !this.sampleValuePrimitives[primitive].value)
+          .sort((a, b) => this.sampleValuePrimitives[a[0]].order - this.sampleValuePrimitives[b[0]].order)
+          .map(([primitive, _]) => primitive);
+        if (missingSampleValuePrimitives.length > 0) {
+          this.submissionErrorMsg = `Please enter sample values for these primitives: ${missingSampleValuePrimitives.join(', ')}`
+          return false;
+        }
+        if (!this.validateByOpenAPIType(this.sampleValuePrimitives.Value.value)) {
+          this.submissionErrorMsg = `Please enter a sample value for Value that is the OpenAPI type of ${miscUtilities.capitalizeFirstChar(this.selectedOpenAPIType)}.`;
+          return false;
+        }
+      }
+
+      return true;
+    },
+    createElement() {
+      if (!this.validateForm()) {
         this.submissionError = true;
         return;
       }
-      
       let payload = {
         definitionName: this.definitionName,
         definitionType: this.definitionType,
@@ -321,7 +342,7 @@ export default {
         OpenAPIType: this.selectedOpenAPIType,
         isOBTaxonomyElementArray: this.isOBTaxonomyElementArray,
         OBUsageTips: this.selectedOBUsageTips,
-        OBSampleValue: JSON.parse(this.selectedOBSampleValue)
+        OBSampleValue: this.buildSampleValueObject()
       };
       this.preSubmit = false;
 
@@ -347,6 +368,60 @@ export default {
         }
       }
       this.possibleItemTypeGroups.push({value: '', text: 'None'})
+    },
+    formatForm() {
+      this.sampleValuePrimitives = this.getSampleValueData();
+    },
+    getSampleValueData() {
+      return { Decimals: { order: 3, value: '' }, 
+               EndTime: { order: 6, value: '' },
+               Precision: { order: 4, value: '' },
+               StartTime: { order: 5, value: '' },
+               Unit: { order: 2, value: '' },
+               Value: { order: 1, value: '' } };
+    },
+    buildSampleValueObject() {
+      return Object.entries(this.sampleValuePrimitives)
+        .filter(([_, data]) => data.value)
+        .reduce((result, [name, data]) => {
+        let value = data.value;
+        if (name === 'Value') {
+          value = this.formatSampleValueValue(value);
+        }
+        result[name] = value;
+        return result;
+      }, {});
+    },
+    validateByOpenAPIType(value) {
+      let type = this.selectedOpenAPIType;
+      if (value === 'true') {
+        value = true;
+      } else if (value === 'false') {
+        value = false;
+      }
+      if (type === 'number') {
+        return !isNaN(value);
+      } else if (type === 'string') {
+        return typeof value === 'string';
+      } else if (type === 'boolean') {
+        return typeof value === 'boolean';
+      } else if (type === 'integer') {
+        return !isNaN(value) && Number.isInteger(parseFloat(value));
+      } else {
+        return false;
+      }
+    },
+    formatSampleValueValue(value) {
+      let type = this.selectedOpenAPIType;
+      if (type === 'boolean') {
+        value = value === 'true';
+      } else if (type === 'number' || type === 'integer') {
+        value = parseFloat(value);
+      }
+      if (this.isOBTaxonomyElementArray) {
+        value = [value];
+      }
+      return value;
     }
   },
   computed: {
@@ -534,7 +609,7 @@ export default {
       return this.possibleItemTypeGroups
     },
     sampleValueFormContext() {
-      let OpenAPINumberTypes = ['Number', 'Integer'];
+      let OpenAPINumberTypes = ['number', 'integer'];
       return { Decimals: { isArray: false, isRequired: false, show: OpenAPINumberTypes.includes(this.selectedOpenAPIType) },
                EndTime: { isArray: false, isRequired: false, show: true },
                Precision: { isArray: false, isRequired: false, show: OpenAPINumberTypes.includes(this.selectedOpenAPIType) },
@@ -543,7 +618,10 @@ export default {
                Value: { isArray: this.isOBTaxonomyElementArray, isRequired: true, show: true } };
     },
     sampleValueValueOptions() {
-      if (this.selectedOBItemTypeType === 'enums') {
+      if (this.selectedOpenAPIType === 'boolean') {
+        return [{ value: 'true', text: 'True' },
+                { value: 'false', text: 'False' }];
+      } else if (this.selectedOBItemTypeType === 'enums') {
         return this.itemTypeEnumsOrUnitsComputed.map(e => {
           return { value: e.enumOrUnitID, text: `${e.enumOrUnitLabel} (${e.enumOrUnitID})` };
         });
@@ -558,6 +636,10 @@ export default {
         });
       }
       return [];
+    },
+    OpenAPITypeOptions() {
+      return miscUtilities.getOpenAPITypes().sort()
+        .map(type => { return { value: type, text: miscUtilities.capitalizeFirstChar(type) }; });
     }
   },
   watch: {

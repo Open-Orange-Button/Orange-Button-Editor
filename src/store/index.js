@@ -88,15 +88,7 @@ export default new Vuex.Store({
     // units added to obtaxonomy update
     nodeEnumsOrUnitsObj: null,
     nodeOBItemTypeGroupName: null,
-    nodeOBItemTypeGroupObj: {},
-
-    // Allowed types for an OB Taxonomy Element
-    OpenAPITypes: [
-      "Boolean",
-      "Integer",
-      "Number",
-      "String"
-    ]
+    nodeOBItemTypeGroupObj: {}
   },
   mutations: {
     /*
@@ -486,7 +478,6 @@ export default new Vuex.Store({
         payload.elementForms
       );
     },
-    // todo: refactor createDefinition, remove repeated code around definition type
     createDefinition(state, payload) {
       let defn_attr = {};
 
