@@ -128,7 +128,8 @@
                 :is="sampleValueValueOptions.length > 0 ? 'b-form-select' : 'b-form-input'"
                 v-model="data.value"
                 :options="sampleValueValueOptions"
-                :state="validateByOpenAPIType(data.value)"
+                :state="validateByOpenAPIType(data.value)
+                  && (OBEnumItemTypeIgnoreMap[selectedOBItemType] ? OBEnumItemTypeIgnoreMap[selectedOBItemType].validate(data.value) : true)"
                 :disabled="!preSubmit" />
               <b-form-select
                 v-else-if="name === 'Unit'"
@@ -260,7 +261,8 @@ export default {
           { key: "enumOrUnitDescription", label: "Enum Description"}
       ],
       addSampleValue: false,
-      sampleValuePrimitives: this.getSampleValueData()
+      sampleValuePrimitives: this.getSampleValueData(),
+      OBEnumItemTypeIgnoreMap: { UUIDItemType: { validate: this.validateUUIDItemType, errorMsg: `Please enter a UUID that matches the regex ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$.` } }
     };
   },
   methods: {
@@ -320,6 +322,10 @@ export default {
         }
         if (!this.validateByOpenAPIType(this.sampleValuePrimitives.Value.value)) {
           this.submissionErrorMsg = `Please enter a sample value for Value that is the OpenAPI type of ${miscUtilities.capitalizeFirstChar(this.selectedOpenAPIType)}.`;
+          return false;
+        }
+        if (this.OBEnumItemTypeIgnoreMap[this.selectedOBItemType] && !this.OBEnumItemTypeIgnoreMap[this.selectedOBItemType].validate(this.sampleValuePrimitives.Value.value)) {
+          this.submissionErrorMsg = this.OBEnumItemTypeIgnoreMap[this.selectedOBItemType].errorMsg;
           return false;
         }
       }
@@ -400,7 +406,7 @@ export default {
         value = false;
       }
       if (type === 'number') {
-        return !isNaN(value);
+        return !/^\s*$/.test(value) && !isNaN(value);
       } else if (type === 'string') {
         return typeof value === 'string' && value.length > 0;
       } else if (type === 'boolean') {
@@ -422,6 +428,9 @@ export default {
         value = [value];
       }
       return value;
+    },
+    validateUUIDItemType(value) {
+      return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/.test(value);
     }
   },
   computed: {
@@ -609,10 +618,9 @@ export default {
       return this.possibleItemTypeGroups
     },
     sampleValueFormContext() {
-      let OpenAPINumberTypes = ['number', 'integer'];
-      return { Decimals: { isArray: false, isRequired: false, show: OpenAPINumberTypes.includes(this.selectedOpenAPIType) },
+      return { Decimals: { isArray: false, isRequired: false, show: this.selectedOpenAPIType === 'number' },
                EndTime: { isArray: false, isRequired: false, show: true },
-               Precision: { isArray: false, isRequired: false, show: OpenAPINumberTypes.includes(this.selectedOpenAPIType) },
+               Precision: { isArray: false, isRequired: false, show: this.selectedOpenAPIType === 'number' },
                StartTime: { isArray: false, isRequired: false, show: true },
                Unit: { isArray: false, isRequired: this.selectedOBItemTypeType === 'units', show: this.selectedOBItemTypeType === 'units' } ,
                Value: { isArray: this.isOBTaxonomyElementArray, isRequired: true, show: true } };
@@ -621,7 +629,7 @@ export default {
       if (this.selectedOpenAPIType === 'boolean') {
         return [{ value: 'true', text: 'True' },
                 { value: 'false', text: 'False' }];
-      } else if (this.selectedOBItemTypeType === 'enums') {
+      } else if (this.selectedOBItemTypeType === 'enums' && !Object.keys(this.OBEnumItemTypeIgnoreMap).includes(this.selectedOBItemType)) {
         return this.itemTypeEnumsOrUnitsComputed.map(e => {
           return { value: e.enumOrUnitID, text: `${e.enumOrUnitLabel} (${e.enumOrUnitID})` };
         });
