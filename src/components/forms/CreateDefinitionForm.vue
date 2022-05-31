@@ -249,7 +249,6 @@ export default {
       isOBTaxonomyElementArray: false,
       selectedOBItemType: null,
       selectedOBUsageTips: "",
-      selectedOBSampleValue: null,
       unitFields: [
           { key: "enumOrUnitID", label: "Unit ID", thStyle: { width: "150px" } }, 
           { key: "enumOrUnitLabel", label: "Unit Label", thStyle: { width: "150px" } },
@@ -266,14 +265,6 @@ export default {
     };
   },
   methods: {
-    validateSampleValueJSON() {
-      try {
-        JSON.parse(this.selectedOBSampleValue);
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
     onRowSelected(items) {
         this.selectedEnumOrUnit = items
     },    
@@ -306,10 +297,6 @@ export default {
         }
         return false;
       }
-      // else if(!this.selectedOBSampleValue || !this.validateSampleValueJSON()) {
-      //   this.submissionErrorMsg = "Invalid SampleValue JSON."
-      //   return;
-      // }
 
       if (this.addSampleValue) {
         let missingSampleValuePrimitives = Object.entries(this.sampleValueFormContext)
@@ -368,11 +355,9 @@ export default {
       }
     },
     findPossibleItemTypeGroups() {
-      for (let i in this.allItemTypeGroups) {
-        if (this.allItemTypeGroups[i]['type'].includes(this.selectedOBItemType)) {
-          this.possibleItemTypeGroups.push(i)
-        }
-      }
+      this.possibleItemTypeGroups = Object.entries(this.allItemTypeGroups)
+        .filter(([_, defn]) => defn.type.includes(this.selectedOBItemType))
+        .map(([name, _]) => name);
       this.possibleItemTypeGroups.push({value: '', text: 'None'})
     },
     formatForm() {
@@ -431,6 +416,15 @@ export default {
     },
     validateUUIDItemType(value) {
       return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/.test(value);
+    },
+    filterItemTypeEnumsOrUnitsByItemTypeGroup() {
+      let itemTypes = this.itemTypeEnumsOrUnitsComputed;
+      if (this.selectedItemTypeGroup) {
+        itemTypes = itemTypes.filter(u => this.allItemTypeGroups[this.selectedItemTypeGroup].group.includes(u.enumOrUnitID));
+      }
+      return itemTypes.map(e => {
+        return { value: e.enumOrUnitID, text: `${e.enumOrUnitLabel} (${e.enumOrUnitID})` };
+      });
     }
   },
   computed: {
@@ -630,18 +624,14 @@ export default {
         return [{ value: 'true', text: 'True' },
                 { value: 'false', text: 'False' }];
       } else if (this.selectedOBItemTypeType === 'enums' && !Object.keys(this.OBEnumItemTypeIgnoreMap).includes(this.selectedOBItemType)) {
-        return this.itemTypeEnumsOrUnitsComputed.map(e => {
-          return { value: e.enumOrUnitID, text: `${e.enumOrUnitLabel} (${e.enumOrUnitID})` };
-        });
+        return this.filterItemTypeEnumsOrUnitsByItemTypeGroup();
       }
       return [];
 
     },
     sampleValueUnitOptions() {
       if (this.selectedOBItemTypeType === 'units') {
-        return this.itemTypeEnumsOrUnitsComputed.map(u => {
-          return { value: u.enumOrUnitID, text: `${u.enumOrUnitLabel} (${u.enumOrUnitID})` };
-        });
+        return this.filterItemTypeEnumsOrUnitsByItemTypeGroup();
       }
       return [];
     },
@@ -660,14 +650,12 @@ export default {
       this.selectedDefnIndex = null;
       this.selectedDefnName = null;
       this.selectedOBUsageTips = "";
-      this.selectedOBSampleValue = JSON.stringify({"Decimals":"","EndTime":"","Precision":"","StartTime":"","Unit":"","Value":""}, null, 2);
     },
     "$store.state.isSelected"() {
       this.definitionType = null;
       this.definitionName = null;
       this.definitionDescription = null;
       this.selectedOBUsageTips = "";
-      this.selectedOBSampleValue = JSON.stringify({"Decimals":"","EndTime":"","Precision":"","StartTime":"","Unit":"","Value":""}, null, 2);
       if (!this.preSubmit) {
         this.preSubmit = true;
       }
@@ -682,7 +670,6 @@ export default {
         this.selectedDefnIndex = null;
         this.selectedDefnName = null;
         this.selectedOBUsageTips = "";
-        this.selectedOBSampleValue = JSON.stringify({"Decimals":"","EndTime":"","Precision":"","StartTime":"","Unit":"","Value":""}, null, 2);
         if (!this.preSubmit) {
           this.preSubmit = true;
         }
