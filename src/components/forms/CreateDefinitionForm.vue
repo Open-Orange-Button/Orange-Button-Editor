@@ -84,12 +84,12 @@
         id="node-item-type-input-group"
         label="OB Item Type:"
         label-for="node-item-type-input"
-        v-if="definitionType === OBTaxonomyElementDisplayName"
+        v-if="definitionType === OBTaxonomyElementDisplayName && selectedOpenAPIType"
       >
         <b-form-select
           id="node-item-type-input"
           v-model="selectedOBItemType"
-          :options="allItemTypesComputed"
+          :options="itemTypeOptions"
           :disabled="!preSubmit"
           :state="Boolean(selectedOBItemType)"
           @change="formatForm"
@@ -448,15 +448,20 @@ export default {
                                                  "To define Value as an array, choose one of the other four types and check the 'Array' checkbox.");
       return info;
     },
-    allItemTypesComputed() {
-      let ret_arr = []
-      let itemTypeName = ''
-      for (let i in this.allItemTypes) {
-          itemTypeName = i
-          ret_arr.push(itemTypeName)
+    itemTypeOptions() {
+      let forBooleanOpenAPIType = ([name, _]) => name === 'BooleanItemType';
+      let forStringOpenAPIType =  ([_, def]) => !def.units;
+      let forNumericOpenAPIType = ([_, def]) => !def.enums;
+      let forOpenAPIType;
+      if (this.selectedOpenAPIType === 'boolean') {
+        forOpenAPIType = forBooleanOpenAPIType;
+      } else if (this.selectedOpenAPIType === 'string') {
+        forOpenAPIType = forStringOpenAPIType;
+      } else if (['integer', 'number'].includes(this.selectedOpenAPIType)) {
+        forOpenAPIType = forNumericOpenAPIType;
       }
-
-      return ret_arr.sort()
+      return Object.entries(this.allItemTypes).filter(forOpenAPIType)
+        .map(([name, _]) => name).sort();
     },
     fileElements() {
       if (this.selectedFileName) {
