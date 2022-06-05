@@ -115,11 +115,7 @@ export default {
       return this.$store.state.loadedFiles[this.selectedFileName]["item_type_groups"];
     },
     itemTypeEnumsOrUnitsComputed() {
-      if (this.selectedOBItemTypeType) { // some item types have neither enums nor units
-        return Object.entries(this.selectedOBItemTypeDef[this.selectedOBItemTypeType])
-          .map(([name, def]) => { return { enumOrUnitID: name, enumOrUnitLabel: def.label || '', enumOrUnitDescription: def.description || '' }; });
-        }
-      return [];
+      return miscUtilities.buildItemTypeEnumsOrUnitsComputedList({ itemTypeDef: this.selectedOBItemTypeDef, itemTypeType: this.selectedOBItemTypeType });
     },
     selectedOpenAPIType() {
       return this.selectedOBPrimitiveValueType.split(`Value${this.isOBTaxonomyElementArray ? 'Array' : ''}`)[1].toLowerCase();
@@ -134,12 +130,7 @@ export default {
       return this.allItemTypes[this.selectedOBItemType];
     },
     selectedOBItemTypeType() {
-      if (this.selectedOBItemTypeDef.enums) {
-        return 'enums';
-      } else if (this.selectedOBItemTypeDef.units) {
-        return 'units';
-      }
-      return '';
+      return miscUtilities.OBItemTypeType({ itemTypeDef: this.selectedOBItemTypeDef });
     },
     selectedFileName() {
       return this.$store.state.selectedFileName;

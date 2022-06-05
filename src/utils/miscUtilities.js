@@ -712,16 +712,16 @@ export function isValidSampleValueForm({ sampleValueFormContext, sampleValuePrim
 
 export function validateByOpenAPIType({ value, selectedOpenAPIType }) {
   let type = selectedOpenAPIType;
-  if (value === 'true') {
-    value = true;
-  } else if (value === 'false') {
-    value = false;
-  }
   if (type === 'number') {
     return !/^\s*$/.test(value) && !isNaN(value);
   } else if (type === 'string') {
     return typeof value === 'string' && value.length > 0;
   } else if (type === 'boolean') {
+    if (value === 'true') {
+      value = true;
+    } else if (value === 'false') {
+      value = false;
+    }
     return typeof value === 'boolean';
   } else if (type === 'integer') {
     return !isNaN(value) && Number.isInteger(parseFloat(value));
@@ -786,4 +786,18 @@ export function sampleValueUnitOptions({ selectedOBItemTypeType, itemTypeEnumsOr
 
 export function OBEnumItemTypeIgnoreMap() {
   return { UUIDItemType: { validate: validateUUIDItemType, errorMsg: `Please enter a UUID that matches the regex ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$.` } };
+}
+
+export function OBItemTypeType({ itemTypeDef }) {
+if (itemTypeDef.enums) {
+  return 'enums';
+} else if (itemTypeDef.units) {
+  return 'units';
+}
+return '';
+}
+
+export function buildItemTypeEnumsOrUnitsComputedList({ itemTypeDef, itemTypeType }) {
+  return Object.entries(itemTypeDef[itemTypeType] || [])
+    .map(([name, def]) => ({ enumOrUnitID: name, enumOrUnitLabel: def.label || '', enumOrUnitDescription: def.description || '' }));
 }

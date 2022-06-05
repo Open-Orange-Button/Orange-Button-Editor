@@ -613,65 +613,11 @@ export default {
     },
     selectedOBItemType() {
       if (this.selectedOBItemType) {
-        this.selectedOBItemTypeType = ''
-        this.selectedOBItemTypeDescription = ''
-        this.selectedOBItemTypeEnumsOrUnits = []
-
-        let enumOrUnitID = ''
-        let enumOrUnitLabel = ''
-        let enumOrUnitDescription = ''
-
-        let currentItemTypeObj = this.allItemTypes[this.selectedOBItemType]
-        this.findPossibleItemTypeGroups()
-        if ("description" in currentItemTypeObj)
-            this.selectedOBItemTypeDescription = currentItemTypeObj["description"]
-
-          // refactor: repeated code
-        if ("enums" in currentItemTypeObj) {
-          this.selectedOBItemTypeType = 'enums'
-          for (let i in currentItemTypeObj['enums']) {
-            enumOrUnitID = i
-            if ('label' in currentItemTypeObj['enums'][i]) {
-                enumOrUnitLabel = currentItemTypeObj['enums'][i]['label']
-            } else {
-                enumOrUnitLabel = ''
-            }
-
-            if ('description' in currentItemTypeObj['enums'][i]) {
-                enumOrUnitDescription = currentItemTypeObj['enums'][i]['description']
-            } else {
-                enumOrUnitDescription = ''
-            }                        
-
-            this.selectedOBItemTypeEnumsOrUnits.push({
-                'enumOrUnitID': enumOrUnitID,
-                'enumOrUnitLabel': enumOrUnitLabel,
-                'enumOrUnitDescription': enumOrUnitDescription
-            })
-          }
-        } else if ("units" in currentItemTypeObj) {
-          this.selectedOBItemTypeType = 'units' 
-          for (let i in currentItemTypeObj['units']) {
-            enumOrUnitID = i
-            if ('label' in currentItemTypeObj['units'][i]) {
-                enumOrUnitLabel = currentItemTypeObj['units'][i]['label']
-            } else {
-                enumOrUnitLabel = ''
-            }
-
-            if ('description' in currentItemTypeObj['units'][i]) {
-                enumOrUnitDescription = currentItemTypeObj['units'][i]['description']
-            } else {
-                enumOrUnitDescription = ''
-            }     
-
-            this.selectedOBItemTypeEnumsOrUnits.push({
-                'enumOrUnitID': enumOrUnitID,
-                'enumOrUnitLabel': enumOrUnitLabel,
-                'enumOrUnitDescription': enumOrUnitDescription
-            })
-          }
-        }
+        let selectedOBItemTypeDef = this.allItemTypes[this.selectedOBItemType];
+        this.selectedOBItemTypeType = miscUtilities.OBItemTypeType({ itemTypeDef: selectedOBItemTypeDef });
+        this.selectedOBItemTypeDescription = selectedOBItemTypeDef.description;
+        this.selectedOBItemTypeEnumsOrUnits = miscUtilities.buildItemTypeEnumsOrUnitsComputedList({ itemTypeDef: selectedOBItemTypeDef, itemTypeType: this.selectedOBItemTypeType });
+        this.findPossibleItemTypeGroups();
       }
     }
   }
