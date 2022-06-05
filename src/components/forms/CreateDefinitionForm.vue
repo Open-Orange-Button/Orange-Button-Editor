@@ -412,129 +412,29 @@ export default {
       return optionsArr;
     },
     defnDetails() {
-      let temp_ret_obj = null;
-
+      let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
       let defnName = this.selectedDefnName;
-      let defnType = "";
-      let defnDescrip = "Documentation not available";
-      let defnEnum = "";
-      let temp_superClassList = [];
-      let temp_superClassListStr = "";
-      let defnObjChildren = "";
-      let typeOfDefn = null;
-
-      let defnFile = this.$store.state.loadedFiles[this.selectedFileName][
-        "file"
-      ];
-
-      if (defnFile[defnName]["allOf"]) {
-        if (miscUtilities.isTaxonomyElement(defnFile, defnName)) {
-          typeOfDefn = "TaxonomyElement";
-        } else {
-          typeOfDefn = "ObjWithInherit";
+      let defnFile = this.$store.state.loadedFiles[this.selectedFileName].file;
+      let defn = defnFile[defnName];
+      let detailData = {};
+      detailData.Name = defnName;
+      detailData.Documentation = defn.description || 'Documentation not available.';
+      detailData.Type = defn.type || '';
+      if (defn.allOf) { // taxonomy element or has inheritance
+        let noninherited = defn.allOf.filter(inherited => !inherited.$ref)[0];
+        detailData.Superclasses = defn.allOf.filter(inherited => inherited.$ref)
+          .map(inherited => defnNameFromRef(inherited.$ref)).sort().join(', ');
+        detailData.Documentation = noninherited.description || 'Documentation not available.';
+        detailData.Type = noninherited.type || '';
+        if (!detailData.Superclasses.includes('TaxonomyElement')) {
+          detailData.Children = Object.keys(noninherited.properties).sort().join(', ') || 'None';
         }
-        for (let i in defnFile[defnName]["allOf"]) {
-          if (defnFile[defnName]["allOf"][i]["$ref"]) {
-            temp_superClassList.push(
-              defnFile[defnName]["allOf"][i]["$ref"].slice(
-                defnFile[defnName]["allOf"][i]["$ref"].lastIndexOf("/") + 1
-              )
-            );
-          } else {
-            if (defnFile[defnName]["allOf"][i]["description"]) {
-              defnDescrip = defnFile[defnName]["allOf"][i]["description"];
-            }
-            if (defnFile[defnName]["allOf"][i]["type"]) {
-              defnType = defnFile[defnName]["allOf"][i]["type"];
-            }
-            if (defnFile[defnName]["allOf"][i]["enum"]) {
-              defnEnum = defnFile[defnName]["allOf"][i]["enum"];
-            }
-
-            if (typeOfDefn == "ObjWithInherit") {
-              if (defnFile[defnName]["allOf"][i]["properties"]) {
-                defnObjChildren = Object.keys(defnFile[defnName]["properties"]);
-              }
-            }
-          }
-        }
-      } else if (defnFile[defnName]["properties"]) {
-        typeOfDefn = "Obj";
-        if (defnFile[defnName]["type"]) {
-          defnType = defnFile[defnName]["type"];
-        }
-
-        if (defnFile[defnName]["properties"]["description"]) {
-          defnDescrip = defnFile[defnName]["properties"]["description"];
-        }
-
-        defnObjChildren = Object.keys(defnFile[defnName]["properties"]);
-      } else {
-        typeOfDefn = "Elem";
-        if (defnFile[defnName]["description"]) {
-          defnDescrip = defnFile[defnName]["description"];
-        }
-
-        if (defnFile[defnName]["type"]) {
-          defnType = defnFile[defnName]["type"];
-        }
-
-        if (defnFile[defnName]["enum"]) {
-          defnEnum = defnFile[defnName]["enum"];
-        }
+      } else if (defn.properties) { // no inheritance
+        detailData.Children = Object.keys(defn.properties).sort().join(', ') || 'None';
+      } else if (defn.items) { // array of another schema definition
+        detailData.Items = defnNameFromRef(defn.items.$ref || defn.items.type);
       }
-      if (temp_superClassList.length == 0) {
-        temp_superClassListStr = "None";
-      } else {
-        temp_superClassListStr = temp_superClassList.join(", ");
-      }
-
-      if (!defnEnum) {
-        defnEnum = "None";
-      } else {
-        defnEnum = defnEnum.join(", ");
-      }
-
-      if (defnObjChildren) {
-        defnObjChildren = defnObjChildren.join(", ");
-      } else {
-        defnObjChildren = "None";
-      }
-
-      if (typeOfDefn == "ObjWithInherit") {
-        temp_ret_obj = [
-          { Attributes: "Name", Values: defnName },
-          { Attributes: "Type", Values: defnType },
-          { Attributes: "Documentation", Values: defnDescrip },
-          { Attributes: "Superclasses", Values: temp_superClassListStr },
-          { Attributes: "Children", Values: defnObjChildren }
-        ];
-      } else if (typeOfDefn == "TaxonomyElement") {
-        temp_ret_obj = [
-          { Attributes: "Name", Values: defnName },
-          { Attributes: "Type", Values: defnType },
-          { Attributes: "Documentation", Values: defnDescrip },
-          { Attributes: "Superclasses", Values: temp_superClassListStr }
-        ];
-      } else if (typeOfDefn == "Obj") {
-        temp_ret_obj = [
-          { Attributes: "Name", Values: defnName },
-          { Attributes: "Type", Values: defnType },
-          { Attributes: "Documentation", Values: defnDescrip },
-          { Attributes: "Children", Values: defnObjChildren }
-        ];
-      } else if (typeOfDefn == "Elem") {
-        temp_ret_obj = [
-          { Attributes: "Name", Values: defnName },
-          { Attributes: "Type", Values: defnType },
-          { Attributes: "Enumeration", Values: defnEnum },
-          { Attributes: "Documentation", Values: defnDescrip }
-        ];
-      }
-
-      let arr = temp_ret_obj;
-
-      return arr;
+      return Object.entries(detailData).map(([attr, val]) => ({ Attributes: attr, Values: miscUtilities.capitalizeFirstChar(val) }));
     },
     itemTypeEnumsOrUnitsComputed() {
       return this.selectedOBItemTypeEnumsOrUnits

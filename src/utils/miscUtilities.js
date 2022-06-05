@@ -364,18 +364,8 @@ export function getAllObjectsFlat(file) {
 }
 
 export function isTaxonomyElement(file, defnName) {
-  let retBool = false;
-  if (file[defnName]["allOf"]) {
-    for (let i in file[defnName]["allOf"]) {
-      if (file[defnName]["allOf"][i]["$ref"]) {
-        if (file[defnName]["allOf"][i]["$ref"].includes("TaxonomyElement")) {
-          retBool = true;
-        }
-      }
-    }
-  }
-
-  return retBool;
+  let defn = file[defnName];
+  return defn.allOf && defn.allOf.some(defn => defn.$ref && defn.$ref.includes('TaxonomyElement'));
 }
 
 export function isExternalRef(refStr) {
