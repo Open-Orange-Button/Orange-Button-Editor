@@ -667,3 +667,119 @@ export function capitalizeFirstChar(str) {
   // capitalize the first character of a string
   return `${str[0].toUpperCase()}${str.slice(1)}`;
 }
+
+// helper functions for sample value forms in CreateDefinitionForm and EditSampleValue
+
+export function getSampleValueData() {
+  return { Decimals: { order: 3, value: '' },
+            EndTime: { order: 6, value: '' },
+            Precision: { order: 4, value: '' },
+            StartTime: { order: 5, value: '' },
+            Unit: { order: 2, value: '' },
+            Value: { order: 1, value: '' } };
+}
+
+
+export function buildSampleValueObject({ sampleValuePrimitives, selectedOpenAPIType, isOBTaxonomyElementArray }) {
+  return Object.entries(sampleValuePrimitives)
+    .filter(([_, data]) => data.value)
+    .reduce((result, [name, data]) => {
+    let value = data.value;
+    if (name === 'Value') {
+      value = formatSampleValueValue({ value, selectedOpenAPIType, isOBTaxonomyElementArray });
+    }
+    result[name] = value;
+    return result;
+  }, {});
+}
+
+
+export function isValidSampleValueForm({ sampleValueFormContext, sampleValuePrimitives, selectedOpenAPIType, selectedOBItemType, OBEnumItemTypeIgnoreMap }) {
+  let submissionErrorMsg = '';
+  let missingSampleValuePrimitives = Object.entries(sampleValueFormContext)
+    .filter(([primitive, context]) => context.isRequired && !sampleValuePrimitives[primitive].value)
+    .sort((a, b) => sampleValuePrimitives[a[0]].order - sampleValuePrimitives[b[0]].order)
+    .map(([primitive, _]) => primitive);
+  if (missingSampleValuePrimitives.length > 0) {
+    submissionErrorMsg = `Please enter sample values for these primitives: ${missingSampleValuePrimitives.join(', ')}`
+  } else if (!validateByOpenAPIType({ value: sampleValuePrimitives.Value.value, selectedOpenAPIType })) {
+    submissionErrorMsg = `Please enter a sample value for Value that is the OpenAPI type of ${capitalizeFirstChar(selectedOpenAPIType)}.`;
+  } else if (OBEnumItemTypeIgnoreMap[selectedOBItemType] && !OBEnumItemTypeIgnoreMap[selectedOBItemType].validate(sampleValuePrimitives.Value.value)) {
+    submissionErrorMsg = OBEnumItemTypeIgnoreMap[selectedOBItemType].errorMsg;
+  }
+  return submissionErrorMsg;
+}
+
+export function validateByOpenAPIType({ value, selectedOpenAPIType }) {
+  let type = selectedOpenAPIType;
+  if (value === 'true') {
+    value = true;
+  } else if (value === 'false') {
+    value = false;
+  }
+  if (type === 'number') {
+    return !/^\s*$/.test(value) && !isNaN(value);
+  } else if (type === 'string') {
+    return typeof value === 'string' && value.length > 0;
+  } else if (type === 'boolean') {
+    return typeof value === 'boolean';
+  } else if (type === 'integer') {
+    return !isNaN(value) && Number.isInteger(parseFloat(value));
+  } else {
+    return false;
+  }
+}
+
+export function formatSampleValueValue({ value, selectedOpenAPIType, isOBTaxonomyElementArray }) {
+  let type = selectedOpenAPIType;
+  if (type === 'boolean') {
+    value = value === 'true';
+  } else if (type === 'number' || type === 'integer') {
+    value = parseFloat(value);
+  }
+  if (isOBTaxonomyElementArray) {
+    value = [value];
+  }
+  return value;
+}
+
+export function validateUUIDItemType(value) {
+  return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/.test(value);
+}
+
+export function filterItemTypeEnumsOrUnitsByItemTypeGroup({ itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups }) {
+  let itemTypes = itemTypeEnumsOrUnitsComputed;
+  if (selectedItemTypeGroup) {
+    itemTypes = itemTypes.filter(u => allItemTypeGroups[selectedItemTypeGroup].group.includes(u.enumOrUnitID));
+  }
+  return itemTypes.map(e => {
+    return { value: e.enumOrUnitID, text: `${e.enumOrUnitLabel} (${e.enumOrUnitID})` };
+  });
+}
+
+export function sampleValueFormContext({ selectedOpenAPIType, selectedOBItemTypeType, isOBTaxonomyElementArray }) {
+  return { Decimals: { isArray: false, isRequired: false, show: selectedOpenAPIType === 'number' },
+            EndTime: { isArray: false, isRequired: false, show: true },
+            Precision: { isArray: false, isRequired: false, show: selectedOpenAPIType === 'number' },
+            StartTime: { isArray: false, isRequired: false, show: true },
+            Unit: { isArray: false, isRequired: selectedOBItemTypeType === 'units', show: selectedOBItemTypeType === 'units' } ,
+            Value: { isArray: isOBTaxonomyElementArray, isRequired: true, show: true } };
+}
+
+export function sampleValueValueOptions({ selectedOpenAPIType, selectedOBItemType, selectedOBItemTypeType, OBEnumItemTypeIgnoreMap,
+                                          itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups }) {
+  if (selectedOpenAPIType === 'boolean') {
+    return [{ value: 'true', text: 'True' },
+            { value: 'false', text: 'False' }];
+  } else if (selectedOBItemTypeType === 'enums' && !Object.keys(OBEnumItemTypeIgnoreMap).includes(selectedOBItemType)) {
+    return filterItemTypeEnumsOrUnitsByItemTypeGroup({ itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups });
+  }
+  return [];
+}
+
+export function sampleValueUnitOptions({ selectedOBItemTypeType, itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups }) {
+  if (selectedOBItemTypeType === 'units') {
+    return filterItemTypeEnumsOrUnitsByItemTypeGroup({ itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups });
+  }
+  return [];
+}
