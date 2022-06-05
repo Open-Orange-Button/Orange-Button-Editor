@@ -128,7 +128,7 @@
                 :is="sampleValueValueOptions.length > 0 ? 'b-form-select' : 'b-form-input'"
                 v-model="data.value"
                 :options="sampleValueValueOptions"
-                :state="validateByOpenAPIType(data.value)
+                :state="miscUtils.validateByOpenAPIType({ value: data.value, selectedOpenAPIType })
                   && (OBEnumItemTypeIgnoreMap[selectedOBItemType] ? OBEnumItemTypeIgnoreMap[selectedOBItemType].validate(data.value) : true)"
                 :disabled="!preSubmit" />
               <b-form-select
@@ -145,18 +145,6 @@
           </div>
         </div>
       </b-form-group>
-
-      <!-- <div class="enum-or-unit-table-container" v-if="selectedOBItemTypeType">              
-        <b-table 
-            @row-selected="onRowSelected" 
-            selectable 
-            select-mode="single"
-            :fields="returnEnumOrUnitFields(selectedOBItemTypeType)" 
-            :items="itemTypeEnumsOrUnitsComputed" 
-            class="item-type-table"
-        >
-        </b-table>
-      </div> -->
 
       <span v-if="definitionType == 'OB Object Array'">
         <div>Choose array item:</div>
@@ -227,6 +215,7 @@ export default {
   },
   data() {
     return {
+      miscUtils: miscUtilities,
       allItemTypes: null,
       selectedOBItemTypeType: null,
       selectedOBItemTypeDescription: null,
@@ -260,8 +249,8 @@ export default {
           { key: "enumOrUnitDescription", label: "Enum Description"}
       ],
       addSampleValue: false,
-      sampleValuePrimitives: this.getSampleValueData(),
-      OBEnumItemTypeIgnoreMap: { UUIDItemType: { validate: this.validateUUIDItemType, errorMsg: `Please enter a UUID that matches the regex ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$.` } }
+      sampleValuePrimitives: miscUtilities.getSampleValueData(),
+      OBEnumItemTypeIgnoreMap: miscUtilities.OBEnumItemTypeIgnoreMap()
     };
   },
   methods: {
@@ -299,20 +288,13 @@ export default {
       }
 
       if (this.addSampleValue) {
-        let missingSampleValuePrimitives = Object.entries(this.sampleValueFormContext)
-          .filter(([primitive, context]) => context.isRequired && !this.sampleValuePrimitives[primitive].value)
-          .sort((a, b) => this.sampleValuePrimitives[a[0]].order - this.sampleValuePrimitives[b[0]].order)
-          .map(([primitive, _]) => primitive);
-        if (missingSampleValuePrimitives.length > 0) {
-          this.submissionErrorMsg = `Please enter sample values for these primitives: ${missingSampleValuePrimitives.join(', ')}`
-          return false;
-        }
-        if (!this.validateByOpenAPIType(this.sampleValuePrimitives.Value.value)) {
-          this.submissionErrorMsg = `Please enter a sample value for Value that is the OpenAPI type of ${miscUtilities.capitalizeFirstChar(this.selectedOpenAPIType)}.`;
-          return false;
-        }
-        if (this.OBEnumItemTypeIgnoreMap[this.selectedOBItemType] && !this.OBEnumItemTypeIgnoreMap[this.selectedOBItemType].validate(this.sampleValuePrimitives.Value.value)) {
-          this.submissionErrorMsg = this.OBEnumItemTypeIgnoreMap[this.selectedOBItemType].errorMsg;
+        this.submissionErrorMsg = miscUtilities.isValidSampleValueForm({
+          sampleValueFormContext: this.sampleValueFormContext,
+          sampleValuePrimitives: this.sampleValuePrimitives,
+          selectedOpenAPIType: this.selectedOpenAPIType,
+          selectedOBItemType: this.selectedOBItemType,
+          OBEnumItemTypeIgnoreMap: this.OBEnumItemTypeIgnoreMap });
+        if (this.submissionErrorMsg) {
           return false;
         }
       }
@@ -324,6 +306,13 @@ export default {
         this.submissionError = true;
         return;
       }
+      let sampleValueJSON;
+      if (this.addSampleValue) {
+        sampleValueJSON = miscUtilities.buildSampleValueObject({
+          sampleValuePrimitives: this.sampleValuePrimitives,
+          selectedOpenAPIType: this.selectedOpenAPIType,
+          isOBTaxonomyElementArray: this.isOBTaxonomyElementArray });
+      }
       let payload = {
         definitionName: this.definitionName,
         definitionType: this.definitionType,
@@ -332,10 +321,10 @@ export default {
         arrayItemFileName: this.selectedFileName,
         OBItemType: this.selectedOBItemType,
         OBItemTypeGroup: this.selectedItemTypeGroup,
-        OpenAPIType: miscUtilities.capitalizeFirstChar(this.selectedOpenAPIType),
+        OpenAPIType: this.selectedOpenAPIType ? miscUtilities.capitalizeFirstChar(this.selectedOpenAPIType) : '',
         isOBTaxonomyElementArray: this.isOBTaxonomyElementArray,
         OBUsageTips: this.selectedOBUsageTips,
-        OBSampleValue: this.buildSampleValueObject()
+        OBSampleValue: sampleValueJSON
       };
       this.preSubmit = false;
 
@@ -361,70 +350,7 @@ export default {
       this.possibleItemTypeGroups.push({value: '', text: 'None'})
     },
     formatForm() {
-      this.sampleValuePrimitives = this.getSampleValueData();
-    },
-    getSampleValueData() {
-      return { Decimals: { order: 3, value: '' },
-               EndTime: { order: 6, value: '' },
-               Precision: { order: 4, value: '' },
-               StartTime: { order: 5, value: '' },
-               Unit: { order: 2, value: '' },
-               Value: { order: 1, value: '' } };
-    },
-    buildSampleValueObject() {
-      return Object.entries(this.sampleValuePrimitives)
-        .filter(([_, data]) => data.value)
-        .reduce((result, [name, data]) => {
-        let value = data.value;
-        if (name === 'Value') {
-          value = this.formatSampleValueValue(value);
-        }
-        result[name] = value;
-        return result;
-      }, {});
-    },
-    validateByOpenAPIType(value) {
-      let type = this.selectedOpenAPIType;
-      if (value === 'true') {
-        value = true;
-      } else if (value === 'false') {
-        value = false;
-      }
-      if (type === 'number') {
-        return !/^\s*$/.test(value) && !isNaN(value);
-      } else if (type === 'string') {
-        return typeof value === 'string' && value.length > 0;
-      } else if (type === 'boolean') {
-        return typeof value === 'boolean';
-      } else if (type === 'integer') {
-        return !isNaN(value) && Number.isInteger(parseFloat(value));
-      } else {
-        return false;
-      }
-    },
-    formatSampleValueValue(value) {
-      let type = this.selectedOpenAPIType;
-      if (type === 'boolean') {
-        value = value === 'true';
-      } else if (type === 'number' || type === 'integer') {
-        value = parseFloat(value);
-      }
-      if (this.isOBTaxonomyElementArray) {
-        value = [value];
-      }
-      return value;
-    },
-    validateUUIDItemType(value) {
-      return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/.test(value);
-    },
-    filterItemTypeEnumsOrUnitsByItemTypeGroup() {
-      let itemTypes = this.itemTypeEnumsOrUnitsComputed;
-      if (this.selectedItemTypeGroup) {
-        itemTypes = itemTypes.filter(u => this.allItemTypeGroups[this.selectedItemTypeGroup].group.includes(u.enumOrUnitID));
-      }
-      return itemTypes.map(e => {
-        return { value: e.enumOrUnitID, text: `${e.enumOrUnitLabel} (${e.enumOrUnitID})` };
-      });
+      this.sampleValuePrimitives = miscUtilities.getSampleValueData();
     }
   },
   computed: {
@@ -617,27 +543,27 @@ export default {
       return this.possibleItemTypeGroups
     },
     sampleValueFormContext() {
-      return { Decimals: { isArray: false, isRequired: false, show: this.selectedOpenAPIType === 'number' },
-               EndTime: { isArray: false, isRequired: false, show: true },
-               Precision: { isArray: false, isRequired: false, show: this.selectedOpenAPIType === 'number' },
-               StartTime: { isArray: false, isRequired: false, show: true },
-               Unit: { isArray: false, isRequired: this.selectedOBItemTypeType === 'units', show: this.selectedOBItemTypeType === 'units' } ,
-               Value: { isArray: this.isOBTaxonomyElementArray, isRequired: true, show: true } };
+      return miscUtilities.sampleValueFormContext({
+        selectedOpenAPIType: this.selectedOpenAPIType,
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        isOBTaxonomyElementArray: this.isOBTaxonomyElementArray });
     },
     sampleValueValueOptions() {
-      if (this.selectedOpenAPIType === 'boolean') {
-        return [{ value: 'true', text: 'True' },
-                { value: 'false', text: 'False' }];
-      } else if (this.selectedOBItemTypeType === 'enums' && !Object.keys(this.OBEnumItemTypeIgnoreMap).includes(this.selectedOBItemType)) {
-        return this.filterItemTypeEnumsOrUnitsByItemTypeGroup();
-      }
-      return [];
+      return miscUtilities.sampleValueValueOptions({
+        selectedOpenAPIType: this.selectedOpenAPIType,
+        selectedOBItemType: this.selectedOBItemType,
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        OBEnumItemTypeIgnoreMap: this.OBEnumItemTypeIgnoreMap,
+        itemTypeEnumsOrUnitsComputed: this.itemTypeEnumsOrUnitsComputed,
+        selectedItemTypeGroup: this.selectedItemTypeGroup,
+        allItemTypeGroups: this.allItemTypeGroups });
     },
     sampleValueUnitOptions() {
-      if (this.selectedOBItemTypeType === 'units') {
-        return this.filterItemTypeEnumsOrUnitsByItemTypeGroup();
-      }
-      return [];
+      return miscUtilities.sampleValueUnitOptions({
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        itemTypeEnumsOrUnitsComputed: this.itemTypeEnumsOrUnitsComputed,
+        selectedItemTypeGroup: this.selectedItemTypeGroup,
+        allItemTypeGroups: this.allItemTypeGroups });
     },
     OpenAPITypeOptions() {
       return miscUtilities.getOpenAPITypes().sort()

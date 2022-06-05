@@ -49,7 +49,7 @@ export default {
       hasSubmitted: false,
       submissionErrorMsg: '',
       sampleValuePrimitives: this.setSampleValueData(),
-      OBEnumItemTypeIgnoreMap: { UUIDItemType: { validate: miscUtilities.validateUUIDItemType, errorMsg: `Please enter a UUID that matches the regex ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$.` } },
+      OBEnumItemTypeIgnoreMap: miscUtilities.OBEnumItemTypeIgnoreMap(),
       miscUtils: miscUtilities
     };
   },
