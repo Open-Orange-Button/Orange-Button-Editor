@@ -364,7 +364,7 @@ export default {
       this.sampleValuePrimitives = this.getSampleValueData();
     },
     getSampleValueData() {
-      return { Decimals: { order: 3, value: '' }, 
+      return { Decimals: { order: 3, value: '' },
                EndTime: { order: 6, value: '' },
                Precision: { order: 4, value: '' },
                StartTime: { order: 5, value: '' },
@@ -632,7 +632,6 @@ export default {
         return this.filterItemTypeEnumsOrUnitsByItemTypeGroup();
       }
       return [];
-
     },
     sampleValueUnitOptions() {
       if (this.selectedOBItemTypeType === 'units') {

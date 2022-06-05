@@ -285,7 +285,7 @@ export default {
       let selected = this.$store.state.isSelected;
       if (selected === "Value") {
         // 'Value' needs to be translated to 'Value<OpenAPIType>'
-        selected = this.$store.state.nodeParentOBPrimativeValueType;
+        selected = this.$store.state.nodeParentOBPrimitiveValueType;
       }
       let selectedDef = defnDoc[selected];
 
