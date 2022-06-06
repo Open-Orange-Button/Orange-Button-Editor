@@ -593,12 +593,12 @@ export function buildSampleJSON({ defnName, fileName, state }) {
   let recurse = ref => buildSampleJSON({ defnName: defnNameFromRef(ref), fileName: fileNameFromRef(ref), state });
   let addSubDefns = refList => refList.sort().forEach(ref => { sampleJSON[defnNameFromRef(ref)] = recurse(ref); });
   if (defn.allOf) { // taxonomy element or has inheritance
-    let isTaxonomyElement = defn.allOf.some(defn => defn.$ref && defn.$ref.includes('TaxonomyElement'));
+    // a schema definition can only inherit from one other schema definition
+    let inherited = defn.allOf.filter(def => def.$ref)[0];
+    let isTaxonomyElement = inherited.$ref.includes('TaxonomyElement');
     if (isTaxonomyElement) {
       sampleJSON = defn.allOf[1]['x-ob-sample-value'];
     } else {
-      // a schema definition can only inherit from one other schema definition
-      let inherited = defn.allOf.filter(def => def.$ref)[0];
       sampleJSON = recurse(inherited.$ref);
       let refLists = defn.allOf.filter(def => !def.$ref).map(def => Object.values(def.properties).map(v => v.$ref));
       refLists.forEach(list => addSubDefns(list));
@@ -608,7 +608,7 @@ export function buildSampleJSON({ defnName, fileName, state }) {
     addSubDefns(refList);
   } else if (defn.items) { // array of another schema definition
     sampleJSON = [recurse(defn.items.$ref)];
-  }
+  } // defn should never be a primitive
   return sampleJSON;
 }
 

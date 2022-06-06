@@ -413,26 +413,36 @@ export default {
     },
     defnDetails() {
       let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
+      let propertyListStr = defn => Object.keys(defn.properties).sort().join(', ') || 'None';
+      let getDocumentation = defn => defn.description || 'Documentation not available.';
       let defnName = this.selectedDefnName;
       let defnFile = this.$store.state.loadedFiles[this.selectedFileName].file;
       let defn = defnFile[defnName];
       let detailData = {};
       detailData.Name = defnName;
-      detailData.Documentation = defn.description || 'Documentation not available.';
-      detailData.Type = defn.type || '';
       if (defn.allOf) { // taxonomy element or has inheritance
-        let noninherited = defn.allOf.filter(inherited => !inherited.$ref)[0];
-        detailData.Superclasses = defn.allOf.filter(inherited => inherited.$ref)
-          .map(inherited => defnNameFromRef(inherited.$ref)).sort().join(', ');
-        detailData.Documentation = noninherited.description || 'Documentation not available.';
-        detailData.Type = noninherited.type || '';
-        if (!detailData.Superclasses.includes('TaxonomyElement')) {
-          detailData.Children = Object.keys(noninherited.properties).sort().join(', ') || 'None';
+        // a schema definition can only inherit from one other schema definition
+        let inherited = defn.allOf.filter(schema => schema.$ref)[0];
+        // a schema definition can only have one set of its own properties 
+        let noninherited = defn.allOf.filter(schema => !schema.$ref)[0];
+        detailData.Superclass = defnNameFromRef(inherited.$ref);
+        detailData.Documentation = getDocumentation(noninherited);
+        detailData.Type = noninherited.type;
+        let isTaxonomyElement = detailData.Superclass.includes('TaxonomyElement');
+        if (!isTaxonomyElement) {
+          detailData.Children = propertyListStr(noninherited);
         }
       } else if (defn.properties) { // no inheritance
-        detailData.Children = Object.keys(defn.properties).sort().join(', ') || 'None';
+        detailData.Documentation = getDocumentation(defn);
+        detailData.Type = defn.type;
+        detailData.Children = propertyListStr(defn.properties);
       } else if (defn.items) { // array of another schema definition
+        detailData.Documentation = getDocumentation(defn);
+        detailData.Type = defn.type;
         detailData.Items = defnNameFromRef(defn.items.$ref || defn.items.type);
+      } else { // primitive
+        detailData.Documentation = getDocumentation(defn);
+        detailData.Type = defn.type;
       }
       return Object.entries(detailData).map(([attr, val]) => ({ Attributes: attr, Values: miscUtilities.capitalizeFirstChar(val) }));
     },
