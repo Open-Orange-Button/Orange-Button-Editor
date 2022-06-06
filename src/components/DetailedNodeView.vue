@@ -73,7 +73,9 @@
             v-b-modal.modal-edit-node
             :disabled="!$store.state.defnIsLocal"
           >Edit definition</b-button>
-          <b-button variant="primary" size="sm" @click="exportSampleJSON" v-if="$store.state.nodeParent == 'root' && $store.state.viewerMode == 'Edit Mode'">
+          <b-button variant="primary" size="sm" @click="exportSampleJSON" v-if="$store.state.nodeParent == 'root'
+                                                                                  && !miscUtilitiesVueHandle.allPrimitiveNames().add('Value').has($store.state.nodeName)
+                                                                                  && $store.state.viewerMode == 'Edit Mode'">
             Create Sample JSON
           </b-button>
           <b-button v-b-modal.modal-delete-node variant="danger" size="sm" v-if="$store.state.viewerMode == 'Edit Mode'">
@@ -139,16 +141,17 @@ export default {
       nodeEnumsOrUnitsObj: null,
       ItemTypeType: null,
       nodeOBItemTypeGroupName: '',
-      nodeOBItemTypeGroupGroupObj: {}
+      nodeOBItemTypeGroupGroupObj: {},
+      miscUtilitiesVueHandle: miscUtilities
     };
   },
   methods: {
     exportSampleJSON() {
       let fileName = this.$store.state.currentFile.fileName; 
       let parentTrail = this.$store.state.nodeParentTrail;
-      let name = parentTrail.substring(0, parentTrail.indexOf("-"));
+      let name = this.$store.state.nodeName;
       this.$store.commit("setFileToExport", {
-        fileToExport: miscUtilities.getSampleJSON(fileName, this.$store.state, parentTrail),
+        fileToExport: miscUtilities.getSampleJSON({ fileName, state: this.$store.state, parentTrail }),
         fileToExportName: name + " from " + fileName,
         exportModalHeader: "Create Sample JSON of " + name
       });
@@ -282,7 +285,7 @@ export default {
       let selected = this.$store.state.isSelected;
       if (selected === "Value") {
         // 'Value' needs to be translated to 'Value<OpenAPIType>'
-        selected = this.$store.state.nodeParentOBPrimativeValueType;
+        selected = this.$store.state.nodeParentOBPrimitiveValueType;
       }
       let selectedDef = defnDoc[selected];
 

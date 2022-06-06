@@ -552,7 +552,7 @@ export default {
         fileToExport = this.$store.state.currentFile.fullFileForExport;
         exportModalHeader = "Save as...";
       } else if (fileToExportType === "sampleJSON") {
-        fileToExport = miscUtilities.getSampleJSON(this.$store.state.currentFile.fileName, this.$store.state);
+        fileToExport = miscUtilities.getSampleJSON({ fileName: this.$store.state.currentFile.fileName, state: this.$store.state });
         exportModalHeader = "Create Sample JSON";
       }
       this.$store.commit("setFileToExport", {
@@ -675,14 +675,13 @@ export default {
       return defnRef;
     },
     defnRefParentTrailStart(nodeName, fileName) {
-      return miscUtilities.generateUniqueRef(nodeName, fileName, "root");
+      return { trail: [nodeName], fileName};
     },
     isViewObj(el) {
       return this.$store.state.viewObjs.includes(el);
     },
     isTaxonomyElementArray(arrItem) {
-      return !arrItem["$ref"]
-        && this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(arrItem["type"])
+      return !arrItem["$ref"] && miscUtilities.getOpenAPITypes().includes(arrItem["type"]);
     },
     processURLParameters(query) {
       this.$store.commit('clearEditorView');

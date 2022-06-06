@@ -99,7 +99,7 @@
           :nodeDescription="arr.childDef.description"
           :isObj="true"
           :parent_name="name"
-          :parentOBPrimativeValueType="OBPrimativeValueType"
+          :parentOBPrimitiveValueType="OBPrimitiveValueType"
           :parent_trail="defnRefParentTrail(arr.key, parent_trail)"
           type="object"
           :ref="defnRef(arr.key, file.fileName)"
@@ -124,7 +124,7 @@
           :nodeDescription="arr.childDef.description"
           :isObj="false"
           parent_name="root"
-          :parentOBPrimativeValueType="OBPrimativeValueType"
+          :parentOBPrimitiveValueType="OBPrimitiveValueType"
           :parent_trail="defnRefParentTrail(arr.key, parent_trail)"
           type="array"
           :ref="defnRef(arr.key, file.fileName)"
@@ -149,7 +149,7 @@
           :depth="depth + 1"
           :nodeDescription="getNodeDescription(arr.subClass_obj)"
           :parent_name="name"
-          :parentOBPrimativeValueType="OBPrimativeValueType"
+          :parentOBPrimitiveValueType="OBPrimitiveValueType"
           :parent_trail="defnRefParentTrail(arr.key, parent_trail)"
           type="object"
           :ref="defnRef(arr.key, file.fileName)"
@@ -174,7 +174,7 @@
           :nodeDescription="getNodeDescription(arr.subClass_obj)"
           :isObj="true"
           :parent_name="name"
-          :parentOBPrimativeValueType="OBPrimativeValueType"
+          :parentOBPrimitiveValueType="OBPrimitiveValueType"
           :parent_trail="defnRefParentTrail(arr.key, parent_trail)"
           type="object"
           :ref="defnRef(arr.key, file.fileName)"
@@ -197,7 +197,7 @@
           :depth="depth + 1"
           :nodeDescription="getNodeDescription(arr.childDef)"
           :parent_name="name"
-          :parentOBPrimativeValueType="OBPrimativeValueType"
+          :parentOBPrimitiveValueType="OBPrimitiveValueType"
           :parent_trail="defnRefParentTrail(arr.key, parent_trail)"
           type="element"
           :ref="defnRef(arr.key, file.fileName)"
@@ -227,7 +227,7 @@ export default {
     "depth",
     "expandAllObjects",
     "parent_name",
-    "parentOBPrimativeValueType",
+    "parentOBPrimitiveValueType",
     "nodeDescription",
     "isObj",
     "parent_trail",
@@ -253,7 +253,7 @@ export default {
       expandArray: true,
       expandElement: false,
       isObject: Boolean(this.children),
-      OBPrimativeValueType: "",
+      OBPrimitiveValueType: "",
       sortedObjLen: null,
       expandDefn: false,
       viewObjFinal: false
@@ -274,7 +274,7 @@ export default {
   },
   computed: {
     arrayItemNameFromRef() {
-      if (this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(this.arrayItemRef)) {
+      if (miscUtilities.getOpenAPITypes().includes(this.arrayItemRef)) {
         return miscUtilities.capitalizeFirstChar(this.arrayItemRef);
       }
       return this.arrayItemRef.slice(this.arrayItemRef.lastIndexOf("/") + 1);
@@ -339,7 +339,7 @@ export default {
             let valueRef = this.children["Value"]["$ref"];
             translatedKey = valueRef.substring(valueRef.lastIndexOf("/") + 1);
             // Extract the type of the Value primitive. Note 'value' has one 'e'.
-            this.OBPrimativeValueType = translatedKey;
+            this.OBPrimitiveValueType = translatedKey;
           }
           let childDef = referenceFile[translatedKey];
 
@@ -519,8 +519,8 @@ export default {
         nodeParent: this.parent_name,
         nodeParentTrail: this.parent_trail,
         nodeType: this.type,
-        OBPrimativeValueType: this.OBPrimativeValueType,
-        parentOBPrimativeValueType: this.parentOBPrimativeValueType,
+        OBPrimitiveValueType: this.OBPrimitiveValueType,
+        parentOBPrimitiveValueType: this.parentOBPrimitiveValueType,
         nameRef: this.nameRef,
         nodeDescription: this.nodeDescription,
         isSubClassedNode: this.subClassedNode,
@@ -633,7 +633,7 @@ export default {
       return defnRef;
     },
     defnRefParentTrail(nodeName, parent_trail) {
-      return nodeName + "-" + parent_trail;
+      return { trail: [...parent_trail.trail, nodeName], fileName: parent_trail.fileName };
     },
     addViewObj(el) {
       this.viewObjFinal = true
@@ -651,8 +651,7 @@ export default {
       this.$store.commit("reRenderList")
     },
     isTaxonomyElementArray(arrItem) {
-      return !arrItem["$ref"]
-        && this.$store.state.OpenAPITypes.map(type => type.toLowerCase()).includes(arrItem["type"])
+      return !arrItem["$ref"] && miscUtilities.getOpenAPITypes().includes(arrItem["type"]);
     }
   },
   watch: {

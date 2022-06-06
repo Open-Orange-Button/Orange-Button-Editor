@@ -17,8 +17,8 @@ export default new Vuex.Store({
     isSelected: null,
     nodeName: null,
     nodeType: null,
-    nodeOBPrimativeValueType: "",
-    nodeParentOBPrimativeValueType: "",
+    nodeOBPrimitiveValueType: "",
+    nodeParentOBPrimitiveValueType: "",
     nodeParent: null,
     nodeParentTrail: null,
     nodeDescription: null,
@@ -88,15 +88,7 @@ export default new Vuex.Store({
     // units added to obtaxonomy update
     nodeEnumsOrUnitsObj: null,
     nodeOBItemTypeGroupName: null,
-    nodeOBItemTypeGroupObj: {},
-
-    // Allowed types for an OB Taxonomy Element
-    OpenAPITypes: [
-      "Boolean",
-      "Integer",
-      "Number",
-      "String"
-    ]
+    nodeOBItemTypeGroupObj: {}
   },
   mutations: {
     /*
@@ -252,8 +244,8 @@ export default new Vuex.Store({
       state.nodeParentTrail = payload.nodeParentTrail;
 
       state.nodeType = payload.nodeType;
-      state.nodeOBPrimativeValueType = payload.OBPrimativeValueType;
-      state.nodeParentOBPrimativeValueType = payload.parentOBPrimativeValueType;
+      state.nodeOBPrimitiveValueType = payload.OBPrimitiveValueType;
+      state.nodeParentOBPrimitiveValueType = payload.parentOBPrimitiveValueType;
       state.nodeDescription = payload.nodeDescription;
       state.nameRef = payload.nameRef;
       state.isSubClassedNode = payload.isSubClassedNode;
@@ -272,7 +264,7 @@ export default new Vuex.Store({
       let selected = state.isSelected;
       if (selected === "Value") {
         // 'Value' needs to be translated to 'Value<OpenAPIType>'
-        selected = state.nodeParentOBPrimativeValueType;
+        selected = state.nodeParentOBPrimitiveValueType;
       }
 
       if (state.selectedDefnRefFile[selected]["allOf"]) {
@@ -486,7 +478,6 @@ export default new Vuex.Store({
         payload.elementForms
       );
     },
-    // todo: refactor createDefinition, remove repeated code around definition type
     createDefinition(state, payload) {
       let defn_attr = {};
 
