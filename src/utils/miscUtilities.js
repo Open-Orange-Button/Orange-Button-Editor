@@ -791,3 +791,40 @@ export function buildItemTypeEnumsOrUnitsComputedList({ itemTypeDef, itemTypeTyp
   return Object.entries(itemTypeDef[itemTypeType] || [])
     .map(([name, def]) => ({ enumOrUnitID: name, enumOrUnitLabel: def.label || '', enumOrUnitDescription: def.description || '' }));
 }
+
+// Edit definition form helper functions
+
+export function defnDetails({ defnName, fileName, state }) {
+  let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
+  let propertyListStr = defn => Object.keys(defn.properties).sort().join(', ') || 'None';
+  let getDocumentation = defn => defn.description || 'Documentation not available.';
+  let defnFile = state.loadedFiles[fileName].file;
+  let defn = defnFile[defnName];
+  let detailData = {};
+  detailData.Name = defnName;
+  if (defn.allOf) { // taxonomy element or has inheritance
+    // a schema definition can only inherit from one other schema definition
+    let inherited = defn.allOf.filter(schema => schema.$ref)[0];
+    // a schema definition can only have one set of its own properties
+    let noninherited = defn.allOf.filter(schema => !schema.$ref)[0];
+    detailData.Superclass = defnNameFromRef(inherited.$ref);
+    detailData.Documentation = getDocumentation(noninherited);
+    detailData.Type = noninherited.type;
+    let isTaxonomyElement = detailData.Superclass.includes('TaxonomyElement');
+    if (!isTaxonomyElement) {
+      detailData.Children = propertyListStr(noninherited);
+    }
+  } else if (defn.properties) { // no inheritance
+    detailData.Documentation = getDocumentation(defn);
+    detailData.Type = defn.type;
+    detailData.Children = propertyListStr(defn);
+  } else if (defn.items) { // array of another schema definition
+    detailData.Documentation = getDocumentation(defn);
+    detailData.Type = defn.type;
+    detailData.Items = defnNameFromRef(defn.items.$ref || defn.items.type);
+  } else { // primitive
+    detailData.Documentation = getDocumentation(defn);
+    detailData.Type = defn.type;
+  }
+  return Object.entries(detailData).map(([attr, val]) => ({ Attributes: attr, Values: capitalizeFirstChar(val) }));
+}
