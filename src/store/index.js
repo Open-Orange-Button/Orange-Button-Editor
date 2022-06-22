@@ -538,7 +538,7 @@ export default new Vuex.Store({
         finalItemTypeObj['units'] = finalEnumsOrUnits
       } else if (payload.itemTypeType == 'enums') {
         finalItemTypeObj['enums'] = finalEnumsOrUnits
-      }
+      } // else no units or enums defined
 
       Vue.set(state.currentFile.item_types, payload.itemTypeName, finalItemTypeObj)
 
@@ -560,7 +560,7 @@ export default new Vuex.Store({
         finalEdittedItemTypeObj['units'] = finalEnumsOrUnits
       } else if (payload.itemTypeType == 'enums') {
         finalEdittedItemTypeObj['enums'] = finalEnumsOrUnits
-      }
+      } // else no units or enums defined
       Vue.set(state.currentFile.item_types, payload.itemTypeName, finalEdittedItemTypeObj)
 
     },

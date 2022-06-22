@@ -39,7 +39,6 @@
                     id="input-item-type-type"
                     v-model="form.itemTypeType"
                     :options="itemTypeTypes"
-                    required
                     :disabled="submitted"
                     ></b-form-select>
                 </b-form-group>
@@ -176,7 +175,7 @@ export default {
                 itemTypeEnumsOrUnits: []
             },
             itemTypeTypes: [
-                { text: 'Select type', value: ''},
+                { text: '', value: ''},
                 { text: 'Units', value: 'units'},
                 { text: 'Enums', value: 'enums'}
             ],
