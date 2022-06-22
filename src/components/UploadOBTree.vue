@@ -123,7 +123,7 @@
           :expandAllObjects="expandAllObjects"
           :nodeDescription="arr.childDef.description"
           :isObj="false"
-          parent_name="root"
+          :parent_name="name"
           :parentOBPrimitiveValueType="OBPrimitiveValueType"
           :parent_trail="defnRefParentTrail(arr.key, parent_trail)"
           type="array"
