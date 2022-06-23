@@ -306,7 +306,7 @@ export default {
         this.submissionError = true;
         return;
       }
-      let sampleValueJSON;
+      let sampleValueJSON = {};
       if (this.addSampleValue) {
         sampleValueJSON = miscUtilities.buildSampleValueObject({
           sampleValuePrimitives: this.sampleValuePrimitives,
