@@ -17,6 +17,8 @@ export default new Vuex.Store({
     isSelected: null,
     nodeName: null,
     nodeType: null,
+    nodeOBPrimitiveValueType: "",
+    nodeParentOBPrimitiveValueType: "",
     nodeParent: null,
     nodeParentTrail: null,
     nodeDescription: null,
@@ -242,6 +244,8 @@ export default new Vuex.Store({
       state.nodeParentTrail = payload.nodeParentTrail;
 
       state.nodeType = payload.nodeType;
+      state.nodeOBPrimitiveValueType = payload.OBPrimitiveValueType;
+      state.nodeParentOBPrimitiveValueType = payload.parentOBPrimitiveValueType;
       state.nodeDescription = payload.nodeDescription;
       state.nameRef = payload.nameRef;
       state.isSubClassedNode = payload.isSubClassedNode;
@@ -257,36 +261,42 @@ export default new Vuex.Store({
       state.nodeOBItemTypeGroupName = ''
       state.nodeOBItemTypeGroupObj = {}
 
-      if (state.selectedDefnRefFile[state.isSelected]["allOf"]) {
-        for (let i in state.selectedDefnRefFile[state.isSelected]["allOf"]) {
-          if (state.selectedDefnRefFile[state.isSelected]["allOf"][i]["type"]) {
+      let selected = state.isSelected;
+      if (selected === "Value") {
+        // 'Value' needs to be translated to 'Value<OpenAPIType>'
+        selected = state.nodeParentOBPrimitiveValueType;
+      }
+
+      if (state.selectedDefnRefFile[selected]["allOf"]) {
+        for (let i in state.selectedDefnRefFile[selected]["allOf"]) {
+          if (state.selectedDefnRefFile[selected]["allOf"][i]["type"]) {
             if (
-              state.selectedDefnRefFile[state.isSelected]["allOf"][i][
+              state.selectedDefnRefFile[selected]["allOf"][i][
               "x-ob-item-type"
               ]
             ) {
               state.nodeOBType =
-                state.selectedDefnRefFile[state.isSelected]["allOf"][i][
+                state.selectedDefnRefFile[selected]["allOf"][i][
                 "x-ob-item-type"
                 ];
             } else {
               state.nodeOBType = "";
             }
 
-            if ("x-ob-item-type-group" in state.selectedDefnRefFile[state.isSelected]["allOf"][i]
-              && state.selectedDefnRefFile[state.isSelected]["allOf"][i]["x-ob-item-type-group"]) {
-                state.nodeOBItemTypeGroupName = state.selectedDefnRefFile[state.isSelected]["allOf"][i]["x-ob-item-type-group"]
+            if ("x-ob-item-type-group" in state.selectedDefnRefFile[selected]["allOf"][i]
+              && state.selectedDefnRefFile[selected]["allOf"][i]["x-ob-item-type-group"]) {
+                state.nodeOBItemTypeGroupName = state.selectedDefnRefFile[selected]["allOf"][i]["x-ob-item-type-group"]
               } else {
                 state.nodeOBItemTypeGroupName = ''
               }
 
             if (
-              state.selectedDefnRefFile[state.isSelected]["allOf"][i][
+              state.selectedDefnRefFile[selected]["allOf"][i][
               "x-ob-usage-tips"
               ]
             ) {
               state.nodeOBUsageTips =
-                state.selectedDefnRefFile[state.isSelected]["allOf"][i][
+                state.selectedDefnRefFile[selected]["allOf"][i][
                 "x-ob-usage-tips"
                 ];
             } else {
@@ -294,12 +304,12 @@ export default new Vuex.Store({
             }
 
             if (
-              state.selectedDefnRefFile[state.isSelected]["allOf"][i][
+              state.selectedDefnRefFile[selected]["allOf"][i][
               "x-ob-sample-value"
               ]
             ) {
               state.nodeOBSampleValue =
-                state.selectedDefnRefFile[state.isSelected]["allOf"][i][
+                state.selectedDefnRefFile[selected]["allOf"][i][
                 "x-ob-sample-value"
                 ];
             } else {
@@ -307,28 +317,28 @@ export default new Vuex.Store({
             }
           }
         }
-      } else if (state.selectedDefnRefFile[state.isSelected]["type"] == "object") {
+      } else if (state.selectedDefnRefFile[selected]["type"] == "object") {
         if (
-          state.selectedDefnRefFile[state.isSelected][
+          state.selectedDefnRefFile[selected][
           "x-ob-usage-tips"
           ]
         ) {
           state.nodeOBUsageTips =
-            state.selectedDefnRefFile[state.isSelected][
+            state.selectedDefnRefFile[selected][
             "x-ob-usage-tips"
             ];
         } else {
           state.nodeOBUsageTips = "";
         }
         state.nodeOBType = "";
-      } else if (state.selectedDefnRefFile[state.isSelected]["type"] == "array") {
+      } else if (state.selectedDefnRefFile[selected]["type"] == "array") {
         if (
-          state.selectedDefnRefFile[state.isSelected][
+          state.selectedDefnRefFile[selected][
           "x-ob-usage-tips"
           ]
         ) {
           state.nodeOBUsageTips =
-            state.selectedDefnRefFile[state.isSelected][
+            state.selectedDefnRefFile[selected][
             "x-ob-usage-tips"
             ];
         } else {
@@ -468,7 +478,6 @@ export default new Vuex.Store({
         payload.elementForms
       );
     },
-    // todo: refactor createDefinition, remove repeated code around definition type
     createDefinition(state, payload) {
       let defn_attr = {};
 
@@ -478,91 +487,7 @@ export default new Vuex.Store({
           description: payload.definitionDescription,
           properties: {}
         };
-      } else if (payload.definitionType == "OB Taxonomy Element String") {
-        defn_attr = {
-          allOf: [
-            {
-              $ref:
-                "#/components/schemas/TaxonomyElementString"
-            },
-            {
-              type: "object",
-              description: payload.definitionDescription,
-              "x-ob-item-type": payload.OBItemType,
-              "x-ob-item-type-group": payload.OBItemTypeGroup,
-              "x-ob-usage-tips": payload.OBUsageTips,
-              "x-ob-sample-value": payload.OBSampleValue
-            }
-          ]
-        };
-      } else if (payload.definitionType == "OB Taxonomy Element Number") {
-        defn_attr = {
-          allOf: [
-            {
-              $ref:
-                "#/components/schemas/TaxonomyElementNumber"
-            },
-            {
-              type: "object",
-              description: payload.definitionDescription,
-              "x-ob-item-type": payload.OBItemType,
-              "x-ob-item-type-group": payload.OBItemTypeGroup,
-              "x-ob-usage-tips": payload.OBUsageTips,
-              "x-ob-sample-value": payload.OBSampleValue
-            }
-          ]
-        };
-      } else if (payload.definitionType == "OB Taxonomy Element Integer") {
-        defn_attr = {
-          allOf: [
-            {
-              $ref:
-                "#/components/schemas/TaxonomyElementInteger"
-            },
-            {
-              type: "object",
-              description: payload.definitionDescription,
-              "x-ob-item-type": payload.OBItemType,
-              "x-ob-item-type-group": payload.OBItemTypeGroup,
-              "x-ob-usage-tips": payload.OBUsageTips,
-              "x-ob-sample-value": payload.OBSampleValue
-            }
-          ]
-        };
-      } else if (payload.definitionType == "OB Taxonomy Element Boolean") {
-        defn_attr = {
-          allOf: [
-            {
-              $ref:
-                "#/components/schemas/TaxonomyElementBoolean"
-            },
-            {
-              type: "object",
-              description: payload.definitionDescription,
-              "x-ob-item-type": payload.OBItemType,
-              "x-ob-item-type-group": payload.OBItemTypeGroup,
-              "x-ob-usage-tips": payload.OBUsageTips,
-              "x-ob-sample-value": payload.OBSampleValue
-            }
-          ]
-        };
-      } else if (payload.definitionType == "OB Taxonomy Element Array") {
-        defn_attr = {
-          allOf: [
-            {
-              $ref:
-                "#/components/schemas/TaxonomyElementArray"
-            },
-            {
-              type: "object",
-              description: payload.definitionDescription,
-              "x-ob-item-type": payload.OBItemType,
-              "x-ob-item-type-group": payload.OBItemTypeGroup,
-              "x-ob-usage-tips": payload.OBUsageTips,
-              "x-ob-sample-value": payload.OBSampleValue
-            }]
-        };
-      } else if (payload.definitionType == "OB Array") {
+      } else if (payload.definitionType == "OB Object Array") {
         let ref = ''
         if (state.currentFile.fileName == payload.arrayItemFileName) {
           ref = "#/components/schemas/" + payload.arrayItemDefnName
@@ -575,6 +500,23 @@ export default new Vuex.Store({
           items: {
             $ref: ref
           }
+        };
+      } else if (payload.definitionType === "OB Element") {
+        let arrayString = payload.isOBTaxonomyElementArray ? "Array" : "";
+        defn_attr = {
+          allOf: [
+            {
+              $ref:
+                `#/components/schemas/TaxonomyElement${arrayString}${payload.OpenAPIType}`
+            },
+            {
+              type: "object",
+              description: payload.definitionDescription,
+              "x-ob-item-type": payload.OBItemType,
+              "x-ob-item-type-group": payload.OBItemTypeGroup,
+              "x-ob-usage-tips": payload.OBUsageTips,
+              "x-ob-sample-value": payload.OBSampleValue
+            }]
         };
       }
 
@@ -596,7 +538,7 @@ export default new Vuex.Store({
         finalItemTypeObj['units'] = finalEnumsOrUnits
       } else if (payload.itemTypeType == 'enums') {
         finalItemTypeObj['enums'] = finalEnumsOrUnits
-      }
+      } // else no units or enums defined
 
       Vue.set(state.currentFile.item_types, payload.itemTypeName, finalItemTypeObj)
 
@@ -618,7 +560,7 @@ export default new Vuex.Store({
         finalEdittedItemTypeObj['units'] = finalEnumsOrUnits
       } else if (payload.itemTypeType == 'enums') {
         finalEdittedItemTypeObj['enums'] = finalEnumsOrUnits
-      }
+      } // else no units or enums defined
       Vue.set(state.currentFile.item_types, payload.itemTypeName, finalEdittedItemTypeObj)
 
     },
@@ -689,6 +631,7 @@ export default new Vuex.Store({
     // when user loads in a file, it is put into the loadedFile object
     // problem: what if someone loads in a file, references it in a new fiile, then unloads the old file. now the new file cant reference the old
     loadFile(state, file) {
+      state.fileTabs.push(file);
       state.loadedFiles[file.fileName] = file;
     },
     removeFile(state, fileName) {

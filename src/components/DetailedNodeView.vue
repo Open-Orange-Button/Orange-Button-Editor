@@ -73,7 +73,9 @@
             v-b-modal.modal-edit-node
             :disabled="!$store.state.defnIsLocal"
           >Edit definition</b-button>
-          <b-button variant="primary" size="sm" @click="exportSampleJSON" v-if="$store.state.nodeParent == 'root' && $store.state.viewerMode == 'Edit Mode'">
+          <b-button variant="primary" size="sm" @click="exportSampleJSON" v-if="$store.state.nodeParent == 'root'
+                                                                                  && !miscUtilitiesVueHandle.allPrimitiveNames().add('Value').has($store.state.nodeName)
+                                                                                  && $store.state.viewerMode == 'Edit Mode'">
             Create Sample JSON
           </b-button>
           <b-button v-b-modal.modal-delete-node variant="danger" size="sm" v-if="$store.state.viewerMode == 'Edit Mode'">
@@ -139,16 +141,17 @@ export default {
       nodeEnumsOrUnitsObj: null,
       ItemTypeType: null,
       nodeOBItemTypeGroupName: '',
-      nodeOBItemTypeGroupGroupObj: {}
+      nodeOBItemTypeGroupGroupObj: {},
+      miscUtilitiesVueHandle: miscUtilities
     };
   },
   methods: {
     exportSampleJSON() {
       let fileName = this.$store.state.currentFile.fileName; 
       let parentTrail = this.$store.state.nodeParentTrail;
-      let name = parentTrail.substring(0, parentTrail.indexOf("-"));
+      let name = this.$store.state.nodeName;
       this.$store.commit("setFileToExport", {
-        fileToExport: miscUtilities.getSampleJSON(fileName, this.$store.state, parentTrail),
+        fileToExport: miscUtilities.getSampleJSON({ fileName, state: this.$store.state, parentTrail }),
         fileToExportName: name + " from " + fileName,
         exportModalHeader: "Create Sample JSON of " + name
       });
@@ -279,13 +282,19 @@ export default {
       }
 
       let defnDoc = this.$store.state.selectedDefnRefFile;
+      let selected = this.$store.state.isSelected;
+      if (selected === "Value") {
+        // 'Value' needs to be translated to 'Value<OpenAPIType>'
+        selected = this.$store.state.nodeParentOBPrimitiveValueType;
+      }
+      let selectedDef = defnDoc[selected];
 
-      if (defnDoc[this.$store.state.isSelected]["allOf"]) {
-        for (let i in defnDoc[this.$store.state.isSelected]["allOf"]) {
-          if (defnDoc[this.$store.state.isSelected]["allOf"][i]["$ref"]) {
+      if (selectedDef["allOf"]) {
+        for (let i in selectedDef["allOf"]) {
+          if (selectedDef["allOf"][i]["$ref"]) {
             temp_superClassList.push(
-              defnDoc[this.$store.state.isSelected]["allOf"][i]["$ref"].slice(
-                defnDoc[this.$store.state.isSelected]["allOf"][i][
+              selectedDef["allOf"][i]["$ref"].slice(
+                selectedDef["allOf"][i][
                   "$ref"
                 ].lastIndexOf("/") + 1
               )
@@ -300,10 +309,8 @@ export default {
       }
 
       if (
-        (defnDoc[this.$store.state.isSelected]["type"] == "object" ||
-          defnDoc[this.$store.state.isSelected]["allOf"]) &&
-        !this.$store.state.isTaxonomyElement
-      ) {
+        (selectedDef["type"] == "object" || selectedDef["allOf"]) &&
+          !this.$store.state.isTaxonomyElement) {
         temp_ret_obj = [
           { Attributes: "Name", Values: this.$store.state.nodeName },
           { Attributes: "Documentation", Values: temp_doc },
@@ -322,14 +329,14 @@ export default {
           { Attributes: "Usage Tips", Values: defnOBUsageTips },
           { Attributes: "Sample", Values: defnOBSampleValue }
         ];
-      } else if (defnDoc[this.$store.state.isSelected]["type"] == "array") {
-        arrayItemName = defnDoc[this.$store.state.isSelected]["items"][
-          "$ref"
-        ].slice(
-          defnDoc[this.$store.state.isSelected]["items"]["$ref"].lastIndexOf(
-            "/"
-          ) + 1
-        );
+      } else if (selectedDef["type"] == "array") {
+        let arrayItem = selectedDef["items"];
+        let arrayItemName;
+        if (arrayItem["type"]) {
+          arrayItemName = miscUtilities.capitalizeFirstChar(arrayItem["type"]);
+        } else {
+          arrayItemName = arrayItem["$ref"].slice(selectedDef["items"]["$ref"].lastIndexOf("/") + 1);
+        }
 
         temp_ret_obj = [
           { Attributes: "Name", Values: this.$store.state.nodeName },
@@ -337,15 +344,16 @@ export default {
           { Attributes: "Array Item", Values: arrayItemName },
           { Attributes: "Usage Tips", Values: defnOBUsageTips }
         ];
-      } else {
+      } else { // primitives
         temp_ret_obj = [
           { Attributes: "Name", Values: this.$store.state.nodeName },
-          { Attributes: "Type", Values: this.$store.state.nodeType },
+          { Attributes: "Type", Values: selectedDef["type"] },
           { Attributes: "Documentation", Values: temp_doc },
           { Attributes: "Usage Tips", Values: defnOBUsageTips }
         ];
       }
-
+      let temp_ret_obj_type_attribute = temp_ret_obj.filter(obj => obj["Attributes"] === "Type")[0];
+      temp_ret_obj_type_attribute["Values"] = miscUtilities.capitalizeFirstChar(temp_ret_obj_type_attribute["Values"]);
       let arr = temp_ret_obj;
 
       return arr;

@@ -364,18 +364,8 @@ export function getAllObjectsFlat(file) {
 }
 
 export function isTaxonomyElement(file, defnName) {
-  let retBool = false;
-  if (file[defnName]["allOf"]) {
-    for (let i in file[defnName]["allOf"]) {
-      if (file[defnName]["allOf"][i]["$ref"]) {
-        if (file[defnName]["allOf"][i]["$ref"].includes("TaxonomyElement")) {
-          retBool = true;
-        }
-      }
-    }
-  }
-
-  return retBool;
+  let defn = file[defnName];
+  return defn.allOf && defn.allOf.some(defn => defn.$ref && defn.$ref.includes('TaxonomyElement'));
 }
 
 export function isExternalRef(refStr) {
@@ -560,89 +550,66 @@ export function wildcardSearch(searchSubject, searchTerm) {
   return searchSubject.indexOf(searchTerm) == 0;
 }
 
-export function getSampleJSON(fileName, state, name) {
-  let fileItems = state.loadedFiles[fileName]["file"];
+export function getOpenAPITypes() {
+  return ['number', 'string', 'integer', 'boolean'];
+}
+
+export function allPrimitiveNames() {
+  let OpenAPITypes = getOpenAPITypes();
+  let ValuePrimitives = OpenAPITypes.map(type => `Value${capitalizeFirstChar(type)}`);
+  let ValueArrayPrimitives = OpenAPITypes.map(type => `ValueArray${capitalizeFirstChar(type)}`);
+  let nonValuePrimitives = ['Decimals', 'EndTime', 'Precision', 'StartTime', 'Unit'];
+  let allPrimitives = new Set(ValuePrimitives.concat(ValueArrayPrimitives).concat(nonValuePrimitives));
+  return allPrimitives;
+}
+
+export function allTaxonomyElementNames() {
+  let OpenAPITypes = getOpenAPITypes();
+  let taxonomyElements = OpenAPITypes.map(type => `TaxonomyElement${capitalizeFirstChar(type)}`);
+  let taxonomyElementArrays = OpenAPITypes.map(type => `TaxonomyElementArray${capitalizeFirstChar(type)}`);
+  let allTaxonomyElements = new Set(taxonomyElements.concat(taxonomyElementArrays));
+  return allTaxonomyElements;
+}
+
+export function getSampleJSON({ fileName, state, parentTrail }) {
   let exportJSON = {};
-  if (name) {
-    exportJSON = sourceFileName(name, fileItems, state);
+  if (parentTrail) {
+    let defnName = parentTrail.trail[parentTrail.trail.length - 1];
+    exportJSON[defnName] = buildSampleJSON({ defnName, fileName, state });
   } else {
-    Object.keys(fileItems).sort().forEach(itemName => {
-      exportJSON[itemName] = buildSampleJSON(itemName, fileItems, state);
-    });
+    let fileDefns = state.loadedFiles[fileName].file;
+    let defnsToIgnore = new Set([...allPrimitiveNames(), ...allTaxonomyElementNames()]);
+    Object.keys(fileDefns).sort().filter(defnName => !defnsToIgnore.has(defnName))
+      .forEach(defnName => { exportJSON[defnName] = buildSampleJSON({ defnName, fileName, state, parentTrail }); });
   }
   return exportJSON;
 }
 
-export function substringNameFromParentTrail(name) {
-  return name.substring(0, name.indexOf("-"));
-}
-
-export function sourceFileName(name, fileItems, state) {
-  let parent = name.substring(name.indexOf("-") + 1);
-  let children = [substringNameFromParentTrail(name)];
-  while(substringNameFromParentTrail(parent) !== "root") {
-    children.push(substringNameFromParentTrail(parent));
-    parent = parent.substring(parent.indexOf("-") + 1);
-  }
-  let exportJSON = {};
-  exportJSON[children[children.length - 1]] = buildSampleJSON(children[children.length - 1], fileItems, state, children.length !== 1, children, children.length - 1);
-  return exportJSON;
-}
-
-export function buildSampleJSON(name, fileItems, state, searchMode, children, index) {
-  let item = fileItems[name];
-  let result = {};
-  if (item["allOf"]) {
-    let ref = item["allOf"][0]["$ref"];
-    result = getItemJSON(ref, item, fileItems, state, searchMode, children, index, name);
-  } else if (item["type"] === "array" && item["items"]) {
-    let ref = item["items"]["$ref"];
-    result = [];
-    result.push(getItemJSON(ref, item, fileItems, state, searchMode, children, index, name));
-  } else if (item["type"] === "object") {
-    Object.keys(item["properties"]).sort().forEach(prop => {
-        if (searchMode && children[index - 1] !== prop) {
-          return;
-        }
-        let ref = item["properties"][prop]["$ref"];
-        result[prop] = getItemJSON(ref, item, fileItems, state, searchMode, children, index, name);
-      });
-  } else if (item["$ref"]) {
-    let ref = item["$ref"];
-    result = getItemJSON(ref, item, fileItems, state, searchMode, children, index, name);
-  } else {
-    result = "";
-  }
-  return result;
-}
-
-export function getItemJSON(ref, item, fileItems, state, searchMode, children, index, name) {
-  let refFileName = ref.substring(0, ref.indexOf("#"));
-  let refItemName = ref.substring(ref.lastIndexOf("/") + 1);
-  if (refItemName.includes("Taxonomy")) {
-    if (searchMode && children[0] !== name) {
-      let result = {};
-      result[children[0]] = "";
-      return result;
+export function buildSampleJSON({ defnName, fileName, state }) {
+  let sampleJSON = {};
+  let defn = state.loadedFiles[fileName].file[defnName];
+  let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
+  let fileNameFromRef = ref => ref.substring(0, ref.indexOf('#')) || fileName;
+  let recurse = ref => buildSampleJSON({ defnName: defnNameFromRef(ref), fileName: fileNameFromRef(ref), state });
+  let addSubDefns = refList => refList.sort().forEach(ref => { sampleJSON[defnNameFromRef(ref)] = recurse(ref); });
+  if (defn.allOf) { // taxonomy element or has inheritance
+    // a schema definition can only inherit from one other schema definition
+    let inherited = defn.allOf.filter(def => def.$ref)[0];
+    let isTaxonomyElement = inherited.$ref.includes('TaxonomyElement');
+    if (isTaxonomyElement) {
+      sampleJSON = defn.allOf[1]['x-ob-sample-value'];
+    } else {
+      sampleJSON = recurse(inherited.$ref);
+      let refLists = defn.allOf.filter(def => !def.$ref).map(def => Object.values(def.properties).map(v => v.$ref));
+      refLists.forEach(list => addSubDefns(list));
     }
-    return item["allOf"][1]["x-ob-sample-value"];
-  } else {
-    if(refFileName) {
-      fileItems = state.loadedFiles[refFileName]["file"];
-    }
-    if (searchMode) {
-      if (item["type"] !== "array") {
-        if (!item["$ref"]) {
-          index--;
-        }
-        refItemName = children[index];
-      }
-      if (index === 0) {
-        searchMode = false;
-      }
-    }
-    return buildSampleJSON(refItemName, fileItems, state, searchMode, children, index, name);
-  }
+  } else if (defn.properties) { // no inheritance
+    let refList = Object.values(defn.properties).map(v => v.$ref);
+    addSubDefns(refList);
+  } else if (defn.items) { // array of another schema definition
+    sampleJSON = [recurse(defn.items.$ref)];
+  } // defn should never be a primitive
+  return sampleJSON;
 }
 
 // filters list for View Objects
@@ -684,4 +651,180 @@ export function readCookie(name) {
 
 export function eraseCookie(name) {
 	createCookie(name,"",-1);
+}
+
+export function capitalizeFirstChar(str) {
+  // capitalize the first character of a string
+  return `${str[0].toUpperCase()}${str.slice(1)}`;
+}
+
+// helper functions for sample value forms in CreateDefinitionForm and EditSampleValue
+
+export function getSampleValueData() {
+  return { Decimals: { order: 3, value: '' },
+            EndTime: { order: 6, value: '' },
+            Precision: { order: 4, value: '' },
+            StartTime: { order: 5, value: '' },
+            Unit: { order: 2, value: '' },
+            Value: { order: 1, value: '' } };
+}
+
+
+export function buildSampleValueObject({ sampleValuePrimitives, selectedOpenAPIType, isOBTaxonomyElementArray }) {
+  return Object.entries(sampleValuePrimitives)
+    .filter(([_, data]) => data.value)
+    .reduce((result, [name, data]) => {
+    let value = data.value;
+    if (name === 'Value') {
+      value = formatSampleValueValue({ value, selectedOpenAPIType, isOBTaxonomyElementArray });
+    }
+    result[name] = value;
+    return result;
+  }, {});
+}
+
+
+export function isValidSampleValueForm({ sampleValueFormContext, sampleValuePrimitives, selectedOpenAPIType, selectedOBItemType, OBEnumItemTypeIgnoreMap }) {
+  let submissionErrorMsg = '';
+  let missingSampleValuePrimitives = Object.entries(sampleValueFormContext)
+    .filter(([primitive, context]) => context.isRequired && !sampleValuePrimitives[primitive].value)
+    .sort((a, b) => sampleValuePrimitives[a[0]].order - sampleValuePrimitives[b[0]].order)
+    .map(([primitive, _]) => primitive);
+  if (missingSampleValuePrimitives.length > 0) {
+    submissionErrorMsg = `Please enter sample values for these primitives: ${missingSampleValuePrimitives.join(', ')}`
+  } else if (!validateByOpenAPIType({ value: sampleValuePrimitives.Value.value, selectedOpenAPIType })) {
+    submissionErrorMsg = `Please enter a sample value for Value that is the OpenAPI type of ${capitalizeFirstChar(selectedOpenAPIType)}.`;
+  } else if (OBEnumItemTypeIgnoreMap[selectedOBItemType] && !OBEnumItemTypeIgnoreMap[selectedOBItemType].validate(sampleValuePrimitives.Value.value)) {
+    submissionErrorMsg = OBEnumItemTypeIgnoreMap[selectedOBItemType].errorMsg;
+  }
+  return submissionErrorMsg;
+}
+
+export function validateByOpenAPIType({ value, selectedOpenAPIType }) {
+  let type = selectedOpenAPIType;
+  if (type === 'number') {
+    return !/^\s*$/.test(value) && !isNaN(value);
+  } else if (type === 'string') {
+    return typeof value === 'string' && value.length > 0;
+  } else if (type === 'boolean') {
+    if (value === 'true') {
+      value = true;
+    } else if (value === 'false') {
+      value = false;
+    }
+    return typeof value === 'boolean';
+  } else if (type === 'integer') {
+    return !isNaN(value) && Number.isInteger(parseFloat(value));
+  } else {
+    return false;
+  }
+}
+
+export function formatSampleValueValue({ value, selectedOpenAPIType, isOBTaxonomyElementArray }) {
+  let type = selectedOpenAPIType;
+  if (type === 'boolean') {
+    value = value === 'true';
+  } else if (type === 'number' || type === 'integer') {
+    value = parseFloat(value);
+  }
+  if (isOBTaxonomyElementArray) {
+    value = [value];
+  }
+  return value;
+}
+
+export function validateUUIDItemType(value) {
+  return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/.test(value);
+}
+
+export function filterItemTypeEnumsOrUnitsByItemTypeGroup({ itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups }) {
+  let itemTypes = itemTypeEnumsOrUnitsComputed;
+  if (selectedItemTypeGroup) {
+    itemTypes = itemTypes.filter(u => allItemTypeGroups[selectedItemTypeGroup].group.includes(u.enumOrUnitID));
+  }
+  return itemTypes.map(e => {
+    return { value: e.enumOrUnitID, text: `${e.enumOrUnitLabel} (${e.enumOrUnitID})` };
+  });
+}
+
+export function sampleValueFormContext({ selectedOpenAPIType, selectedOBItemTypeType, isOBTaxonomyElementArray }) {
+  return { Decimals: { isArray: false, isRequired: false, show: selectedOpenAPIType === 'number' },
+            EndTime: { isArray: false, isRequired: false, show: true },
+            Precision: { isArray: false, isRequired: false, show: selectedOpenAPIType === 'number' },
+            StartTime: { isArray: false, isRequired: false, show: true },
+            Unit: { isArray: false, isRequired: selectedOBItemTypeType === 'units', show: selectedOBItemTypeType === 'units' } ,
+            Value: { isArray: isOBTaxonomyElementArray, isRequired: true, show: true } };
+}
+
+export function sampleValueValueOptions({ selectedOpenAPIType, selectedOBItemType, selectedOBItemTypeType, OBEnumItemTypeIgnoreMap,
+                                          itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups }) {
+  if (selectedOpenAPIType === 'boolean') {
+    return [{ value: 'true', text: 'True' },
+            { value: 'false', text: 'False' }];
+  } else if (selectedOBItemTypeType === 'enums' && !Object.keys(OBEnumItemTypeIgnoreMap).includes(selectedOBItemType)) {
+    return filterItemTypeEnumsOrUnitsByItemTypeGroup({ itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups });
+  }
+  return [];
+}
+
+export function sampleValueUnitOptions({ selectedOBItemTypeType, itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups }) {
+  if (selectedOBItemTypeType === 'units') {
+    return filterItemTypeEnumsOrUnitsByItemTypeGroup({ itemTypeEnumsOrUnitsComputed, selectedItemTypeGroup, allItemTypeGroups });
+  }
+  return [];
+}
+
+export function OBEnumItemTypeIgnoreMap() {
+  return { UUIDItemType: { validate: validateUUIDItemType, errorMsg: `Please enter a UUID that matches the regex ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$.` } };
+}
+
+export function OBItemTypeType({ itemTypeDef }) {
+if (itemTypeDef.enums) {
+  return 'enums';
+} else if (itemTypeDef.units) {
+  return 'units';
+}
+return '';
+}
+
+export function buildItemTypeEnumsOrUnitsComputedList({ itemTypeDef, itemTypeType }) {
+  return Object.entries(itemTypeDef[itemTypeType] || [])
+    .map(([name, def]) => ({ enumOrUnitID: name, enumOrUnitLabel: def.label || '', enumOrUnitDescription: def.description || '' }));
+}
+
+// Edit definition form helper functions
+
+export function defnDetails({ defnName, fileName, state }) {
+  let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
+  let propertyListStr = defn => Object.keys(defn.properties).sort().join(', ') || 'None';
+  let getDocumentation = defn => defn.description || 'Documentation not available.';
+  let defnFile = state.loadedFiles[fileName].file;
+  let defn = defnFile[defnName];
+  let detailData = {};
+  detailData.Name = defnName;
+  if (defn.allOf) { // taxonomy element or has inheritance
+    // a schema definition can only inherit from one other schema definition
+    let inherited = defn.allOf.filter(schema => schema.$ref)[0];
+    // a schema definition can only have one set of its own properties
+    let noninherited = defn.allOf.filter(schema => !schema.$ref)[0];
+    detailData.Superclass = defnNameFromRef(inherited.$ref);
+    detailData.Documentation = getDocumentation(noninherited);
+    detailData.Type = noninherited.type;
+    let isTaxonomyElement = detailData.Superclass.includes('TaxonomyElement');
+    if (!isTaxonomyElement) {
+      detailData.Children = propertyListStr(noninherited);
+    }
+  } else if (defn.properties) { // no inheritance
+    detailData.Documentation = getDocumentation(defn);
+    detailData.Type = defn.type;
+    detailData.Children = propertyListStr(defn);
+  } else if (defn.items) { // array of another schema definition
+    detailData.Documentation = getDocumentation(defn);
+    detailData.Type = defn.type;
+    detailData.Items = defnNameFromRef(defn.items.$ref || defn.items.type);
+  } else { // primitive
+    detailData.Documentation = getDocumentation(defn);
+    detailData.Type = defn.type;
+  }
+  return Object.entries(detailData).map(([attr, val]) => ({ Attributes: attr, Values: capitalizeFirstChar(val) }));
 }

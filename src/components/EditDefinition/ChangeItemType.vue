@@ -26,22 +26,6 @@ Child of EditDefinition, edit definition form
             ref="change-item-type-enums-or-units-table-ref"
         >
         </b-table>
-        <!-- <span v-if="selectedOBItemType">
-          <span v-if="selectedOBItemType.includes('solar-types')">
-            <b-table
-              :items="itemTypeUnits"
-              class="detailsTable"
-              ref="itemTypeUnitsTable"
-            ></b-table>
-          </span>
-          <span v-else>
-            <b-table
-              :items="itemTypeUnits"
-              class="detailsTable"
-              ref="itemTypeUnitsTable"
-            ></b-table>
-          </span>
-        </span> -->
       </b-form>
     </div>
     <div class="editor-function-footer-container">

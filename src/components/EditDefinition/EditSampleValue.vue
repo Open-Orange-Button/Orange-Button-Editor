@@ -5,15 +5,30 @@ Component for adding/removing sample value to definitions
 <template>
   <div class="editor-function-container">
     <div class="editor-function-body-container">
-      <p>Sample:</p>
-      <b-form-textarea
-        id="textarea"
-        v-model="sampleValue"
-        rows="3"
-        max-rows="6"
-        :state="Boolean(sampleValue) ? validateSampleValueJSON() : false"
-        :disabled="hasSubmitted"
-      ></b-form-textarea>
+      <div v-for="[name, data] in Object.entries(sampleValuePrimitives)
+                                        .sort((a, b) => a[1].order - b[1].order)
+                                        .filter(p => sampleValueFormContext[p[0]].show)">
+        {{ `${sampleValueFormContext[name].isArray ? 'Array Item ' : ''}${name}:` }}
+          <component
+            v-if="name === 'Value'"
+            :is="sampleValueValueOptions.length > 0 ? 'b-form-select' : 'b-form-input'"
+            v-model="data.value"
+            :options="sampleValueValueOptions"
+            :state="miscUtils.validateByOpenAPIType({ value:data.value, selectedOpenAPIType })
+              && (OBEnumItemTypeIgnoreMap[selectedOBItemType] ? OBEnumItemTypeIgnoreMap[selectedOBItemType].validate(data.value) : true)" />
+          <b-form-select
+            v-else-if="name === 'Unit'"
+            v-model="data.value"
+            :options="sampleValueUnitOptions"
+            :state="Boolean(data.value)" />
+          <b-form-input
+            v-else
+            v-model="data.value"
+            :state="Boolean(data.value) || !sampleValueFormContext[name].isRequired" />
+      </div>
+      <div style="color: red">
+        {{ submissionErrorMsg }}
+      </div>
     </div>
     <div class="editor-function-footer-container">
       <b-button variant="primary" @click="submitEdit" :disabled="hasSubmitted" size="sm">
@@ -26,38 +41,113 @@ Component for adding/removing sample value to definitions
 </template>
 
 <script>
+import * as miscUtilities from "../../utils/miscUtilities";
+
 export default {
-  created() {
-    this.sampleValue = JSON.stringify(this.$store.state.nodeOBSampleValue, null , 2);
-  },
   data() {
     return {
-      selectedIndex: null,
-      sampleValue: "",
-      hasSubmitted: false
+      hasSubmitted: false,
+      submissionErrorMsg: '',
+      sampleValuePrimitives: this.setSampleValueData(),
+      OBEnumItemTypeIgnoreMap: miscUtilities.OBEnumItemTypeIgnoreMap(),
+      miscUtils: miscUtilities
     };
   },
   methods: {
-    validateSampleValueJSON() {
-      try {
-        JSON.parse(this.sampleValue);
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
     submitEdit() {
-      if (!this.validateSampleValueJSON()) {
+      if (!this.isValidForm()) {
         return;
       }
-      this.$store.commit("addSampleValue", JSON.parse(this.sampleValue));
+      let sampleValueJSON = miscUtilities.buildSampleValueObject({
+        sampleValuePrimitives: this.sampleValuePrimitives,
+        selectedOpenAPIType: this.selectedOpenAPIType,
+        isOBTaxonomyElementArray: this.isOBTaxonomyElementArray });
+      this.$store.commit("addSampleValue", sampleValueJSON);
       this.hasSubmitted = true;
     },
     goPreviousView() {
       this.$store.state.activeEditingView = "EditDefinitionFormDisabled";
+    },
+    isValidForm() {
+      this.submissionErrorMsg = miscUtilities.isValidSampleValueForm({
+        sampleValueFormContext: this.sampleValueFormContext,
+        sampleValuePrimitives: this.sampleValuePrimitives,
+        selectedOpenAPIType: this.selectedOpenAPIType,
+        selectedOBItemType: this.selectedOBItemType,
+        OBEnumItemTypeIgnoreMap: this.OBEnumItemTypeIgnoreMap });
+      return this.submissionErrorMsg === '';
+    },
+    setSampleValueData() {
+      let savedSampleValueData = this.$store.state.nodeOBSampleValue;
+      let formSampleValueData = miscUtilities.getSampleValueData();
+      Object.entries(savedSampleValueData).forEach(([name, value]) => (formSampleValueData[name].value = value));
+      return formSampleValueData;
     }
   },
-  computed: {}
+  computed: {
+    sampleValueFormContext() {
+      return miscUtilities.sampleValueFormContext({
+        selectedOpenAPIType: this.selectedOpenAPIType,
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        isOBTaxonomyElementArray: this.isOBTaxonomyElementArray });
+    },
+    sampleValueValueOptions() {
+      return miscUtilities.sampleValueValueOptions({
+        selectedOpenAPIType: this.selectedOpenAPIType,
+        selectedOBItemType: this.selectedOBItemType,
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        OBEnumItemTypeIgnoreMap: this.OBEnumItemTypeIgnoreMap,
+        itemTypeEnumsOrUnitsComputed: this.itemTypeEnumsOrUnitsComputed,
+        selectedItemTypeGroup: this.selectedItemTypeGroup,
+        allItemTypeGroups: this.allItemTypeGroups });
+    },
+    sampleValueUnitOptions() {
+      return miscUtilities.sampleValueUnitOptions({
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        itemTypeEnumsOrUnitsComputed: this.itemTypeEnumsOrUnitsComputed,
+        selectedItemTypeGroup: this.selectedItemTypeGroup,
+        allItemTypeGroups: this.allItemTypeGroups });
+    },
+    allItemTypes() {
+      return this.$store.state.loadedFiles[this.selectedFileName]["item_types"];
+    },
+    allItemTypeGroups() {
+      return this.$store.state.loadedFiles[this.selectedFileName]["item_type_groups"];
+    },
+    itemTypeEnumsOrUnitsComputed() {
+      return miscUtilities.buildItemTypeEnumsOrUnitsComputedList({ itemTypeDef: this.selectedOBItemTypeDef, itemTypeType: this.selectedOBItemTypeType });
+    },
+    selectedOpenAPIType() {
+      return this.selectedOBPrimitiveValueType.split(`Value${this.isOBTaxonomyElementArray ? 'Array' : ''}`)[1].toLowerCase();
+    },
+    selectedOBPrimitiveValueType() {
+      return this.$store.state.nodeOBPrimitiveValueType;
+    },
+    selectedOBItemType() {
+      return this.$store.state.nodeOBType;
+    },
+    selectedOBItemTypeDef() {
+      return this.allItemTypes[this.selectedOBItemType];
+    },
+    selectedOBItemTypeType() {
+      return miscUtilities.OBItemTypeType({ itemTypeDef: this.selectedOBItemTypeDef });
+    },
+    selectedFileName() {
+      return this.$store.state.selectedFileName;
+    },
+    selectedNodeName() {
+      return this.$store.state.nodeName;
+    },
+    selectedNodeDef() {
+      return this.$store.state.loadedFiles[this.selectedFileName].file[this.selectedNodeName];
+    },
+    isOBTaxonomyElementArray() {
+      return this.selectedOBPrimitiveValueType.includes('Array');
+    },
+    selectedItemTypeGroup() {
+      return this.$store.state.nodeOBItemTypeGroupName;
+    }
+  }
 };
 </script>
 

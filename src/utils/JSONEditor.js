@@ -342,19 +342,6 @@ export function removeEnum(JSONFile, defnName, enumName) {
   }
 }
 
-export function createNewDefnFile(title, description, fileName) {
-  let returnNewFileObj = {};
-  returnNewFileObj["fullFileForExport"] = newFileTemplate;
-  returnNewFileObj["file"] =
-    returnNewFileObj["fullFileForExport"].components.schemas;
-  returnNewFileObj["fileName"] = fileName;
-
-  returnNewFileObj["fullFileForExport"]["info"]["title"] = title;
-  returnNewFileObj["fullFileForExport"]["info"]["description"] = description;
-
-  return returnNewFileObj;
-}
-
 // todo: handle loading in inheritance
 export function loadInDefinition(workingFile, defnName, refFile) {
   let dependenciesToAdd = getObjChildren(refFile, defnName)

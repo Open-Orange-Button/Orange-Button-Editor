@@ -43,46 +43,46 @@
                   <span v-for="arr in sortedObjects">
                     <!-- obj node -->
                     <UploadOBTree
-                      v-if="arr[2] == 'Object'"
-                      :name="arr[0]"
-                      :children="arr[1].properties"
+                      v-if="arr.nodeType == 'Object'"
+                      :name="arr.key"
+                      :children="arr.childDef.properties"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
-                      :nodeDescription="arr[1].description"
+                      :nodeDescription="arr.childDef.description"
                       :isObj="true"
-                      parent="root"
-                      :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
+                      parent_name="root"
+                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
                       type="object"
-                      :ref="defnRef(arr[0], item.fileName)"
-                      :nameRef="defnRef(arr[0], item.fileName)"
+                      :ref="defnRef(arr.key, item.fileName)"
+                      :nameRef="defnRef(arr.key, item.fileName)"
                       :file="computedFile"
                       :isTaxonomyElement="false"
-                      :referenceFile="arr[3]"
-                      :isLocal="arr[4]"
-                      :viewObj="arr[5]"
+                      :referenceFile="arr.referenceFile"
+                      :isLocal="arr.isLocal"
+                      :viewObj="arr.isViewObj"
                       :isTopLevel="true"
                       :topLevelExpand="true"
                     ></UploadOBTree>
 
                     <UploadOBTree
-                      v-else-if="arr[2] == 'Array'"
-                      :name="arr[0]"
-                      :children="getArrayItemAsChildren(arr[3], arr[5], arr[0])"
+                      v-else-if="arr.nodeType == 'Array'"
+                      :name="arr.key"
+                      :children="getArrayItemAsChildren(arr.referenceFile, arr.arr_item, arr.key)"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
-                      :nodeDescription="arr[1].description"
+                      :nodeDescription="arr.childDef.description"
                       :isObj="false"
-                      parent="root"
-                      :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
+                      parent_name="root"
+                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
                       type="array"
-                      :ref="defnRef(arr[0], item.fileName)"
-                      :nameRef="defnRef(arr[0], item.fileName)"
+                      :ref="defnRef(arr.key, item.fileName)"
+                      :nameRef="defnRef(arr.key, item.fileName)"
                       :file="computedFile"
                       :isArray="true"
-                      :arrayItemRef="arr[5]"
-                      :arrayItemType="getArrItemType(arr[5])"
-                      :referenceFile="arr[3]"
-                      :isLocal="arr[4]"
+                      :arrayItemRef="arr.arr_item['$ref'] || arr.arr_item['type']"
+                      :arrayItemType="getArrItemType(arr.arr_item)"
+                      :referenceFile="arr.referenceFile"
+                      :isLocal="arr.isLocal"
                       :viewObj="false"
                       :isTopLevel="true"
                       :topLevelExpand="true"
@@ -90,22 +90,22 @@
 
                     <!-- taxonomy element -->
                     <UploadOBTree
-                      v-else-if="arr[2] == 'TaxonomyElement'"
+                      v-else-if="arr.nodeType == 'TaxonomyElement'"
                       :isObj="false"
-                      :name="arr[0]"
-                      :children="subClassChildren(arr[4], arr[3], arr[1], arr[0])"
+                      :name="arr.key"
+                      :children="subClassChildren(arr.referenceFile, arr.superClass_lst, arr.subClass_obj, arr.key)"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
-                      :nodeDescription="getNodeDescription(arr[1])"
-                      parent="root"
-                      :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
+                      :nodeDescription="getNodeDescription(arr.subClass_obj)"
+                      parent_name="root"
+                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
                       type="object"
-                      :ref="defnRef(arr[0], item.fileName)"
-                      :nameRef="defnRef(arr[0], item.fileName)"
+                      :ref="defnRef(arr.key, item.fileName)"
+                      :nameRef="defnRef(arr.key, item.fileName)"
                       :file="computedFile"
                       :isTaxonomyElement="true"
-                      :referenceFile="arr[4]"
-                      :isLocal="arr[5]"
+                      :referenceFile="arr.referenceFile"
+                      :isLocal="arr.isLocal"
                       :viewObj="false"
                       :isTopLevel="true"
                     >
@@ -113,22 +113,22 @@
 
                     <!-- allOf Obj -->
                     <UploadOBTree
-                      v-else-if="arr[2] == 'ObjWithInherit'"
-                      :name="arr[0]"
-                      :children="subClassChildren(arr[4], arr[3], arr[1], arr[0])"
+                      v-else-if="arr.nodeType == 'ObjWithInherit'"
+                      :name="arr.key"
+                      :children="subClassChildren(arr.referenceFile, arr.superClass_lst, arr.subClass_obj, arr.key)"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
-                      :nodeDescription="getNodeDescription(arr[1])"
+                      :nodeDescription="getNodeDescription(arr.subClass_obj)"
                       :isObj="true"
-                      parent="root"
-                      :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
+                      parent_name="root"
+                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
                       type="object"
-                      :ref="defnRef(arr[0], item.fileName)"
-                      :nameRef="defnRef(arr[0], item.fileName)"
+                      :ref="defnRef(arr.key, item.fileName)"
+                      :nameRef="defnRef(arr.key, item.fileName)"
                       :file="computedFile"
                       :isTaxonomyElement="false"
-                      :referenceFile="arr[4]"
-                      :isLocal="arr[5]"
+                      :referenceFile="arr.referenceFile"
+                      :isLocal="arr.isLocal"
                       :viewObj="false"
                       :isTopLevel="true"
                     ></UploadOBTree>
@@ -136,19 +136,19 @@
                     <UploadOBTree
                       v-else
                       :isObj="false"
-                      :name="arr[0]"
+                      :name="arr.key"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
-                      :nodeDescription="getNodeDescription(arr[1])"
-                      parent="root"
-                      :parent_trail="defnRefParentTrailStart(arr[0], item.fileName)"
-                      type="string"
-                      :ref="defnRef(arr[0], item.fileName)"
-                      :nameRef="defnRef(arr[0], item.fileName)"
+                      :nodeDescription="getNodeDescription(arr.childDef)"
+                      parent_name="root"
+                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
+                      :type=arr.nodeType
+                      :ref="defnRef(arr.key, item.fileName)"
+                      :nameRef="defnRef(arr.key, item.fileName)"
                       :file="computedFile"
                       :isTaxonomyElement="false"
-                      :referenceFile="arr[2]"
-                      :isLocal="arr[3]"
+                      :referenceFile="arr.referenceFile"
+                      :isLocal="arr.isLocal"
                       :viewObj="false"
                       :isTopLevel="true"
                     >
@@ -183,7 +183,7 @@
                 <b-button
                   variant="primary"
                   class="float-right"
-                  @click="loadFile"
+                  @click="loadFileFromFileSystem"
                   :disabled="!file"
                   v-if="tabIndexFileUpload == 0"
                 >
@@ -235,6 +235,19 @@
                             Unselect File
                           </b-button>
                         </span>
+                      </div>
+                      <div style="padding: 0.8em">
+                        The latest version of the OB OpenAPI Taxonomy is available on
+                        <a :href="GitHubTaxonomyUser" target="_blank">
+                          <b>GitHub</b>
+                        </a>.
+                        View it in the OB Editor using these links:
+                        <li v-for="obj in latestTaxonomyViewObjLinks" style="padding-left: 1em; padding-right: 1em">
+                          <a :href="editorViewLink(obj.parameter)" target="_blank">
+                            <b>{{ obj.name }}</b>
+                          </a>
+                        </li>
+                        Note: To enter view mode or edit mode, click the eye or pencil icon in the top-right corner.
                       </div>
                       <div class="error-container">
                         <b-alert
@@ -421,7 +434,9 @@ import EditDefinition from "../components/EditDefinition/EditDefinition";
 import EditItemTypesMain from "../components/ItemTypes/EditItemTypesMain"
 import * as miscUtilities from "../utils/miscUtilities";
 import * as JSONEditor from "../utils/JSONEditor.js";
+import newFileTemplate from "../assets/OB-OpenAPI-New-File-Template.json";
 import FileSaver from "file-saver";
+import { version } from "process";
 
 export default {
   components: {
@@ -432,38 +447,6 @@ export default {
     EditDefinition,
     LoadInDefinition,
     EditItemTypesMain
-  },
-  created() {
-    // if query params, create cookie
-    // query param form = ?views=
-    if (Object.keys(this.$route.query).length !== 0) {
-      miscUtilities.eraseCookie('viewObjs')
-      let view_objects = this.$route.query['views']
-      view_objects = view_objects.split(',')
-      for (let i in view_objects) {
-        this.$store.commit("addViewObj", {
-          el: view_objects[i],
-          mode: 'create_cookie'
-        })
-      }
-    } else {
-      let viewObjsArr = JSON.parse(miscUtilities.readCookie('viewObjs'))
-      if (viewObjsArr == null) {
-        viewObjsArr = []
-      }
-      // if you have cookie, read it, if not switch to edit mode
-      if (viewObjsArr.length != 0) {
-        for (let i in viewObjsArr) {
-          this.$store.commit("addViewObj", {
-            el: viewObjsArr[i],
-            mode: 'init'
-          });
-        }
-      } else {
-        this.$store.commit('clearEditorView')
-        this.$store.commit('changeViewerMode', 'Edit Mode')
-      }
-    }
   },
   data() {
     return {
@@ -493,16 +476,26 @@ export default {
       },
       missingRefsRequired: [],
       showMissingRefsErr: false,
-      treeSearchTerm: ""
+      treeSearchTerm: "",
+      GitHubTaxonomyUser: "https://github.com/Open-Orange-Button/Orange-Button-Taxonomy/blob/main/Master-OB-OpenAPI.json",
+      GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
+      latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}]
     };
   },
+  mounted() {
+    this.processURLParameters(this.$route.query);
+  },
   methods: {
-    getArrItemType(arrItemRef) {
-      return miscUtilities.getArrayItemType(
-        arrItemRef,
-        this.$store.state.loadedFiles,
-        this.$store.state.currentFile
-      );
+    getArrItemType(arrItem) {
+      if (this.isTaxonomyElementArray(arrItem)) {
+        return arrItem["type"];
+      } else {
+        return miscUtilities.getArrayItemType(
+          arrItem["$ref"],
+          this.$store.state.loadedFiles,
+          this.$store.state.currentFile
+        );
+      }
     },
     fileToJSON() {
       if (this.file) {
@@ -518,51 +511,16 @@ export default {
       }
     },
     createFile() {
-      let defnFileTitle = this.newFileForm.fileTitle;
-      let defnFileDescription = this.newFileForm.fileDescription;
-      let defnFileName = this.newFileForm.fileName;
-
-      let check_duplicate_file = false;
-
-      if (!defnFileTitle) {
-        defnFileTitle = "Placeholder Title";
-      }
-
-      if (!defnFileDescription) {
-        defnFileDescription = "Placeholder Description";
-      }
-
-      if (!defnFileDescription) {
-        defnFileName = "OB-OpenAPI-DefnFile.json";
-      }
-
-      let newFileObj = JSONEditor.createNewDefnFile(
-        defnFileTitle,
-        defnFileDescription,
-        defnFileName
-      );
-
-      for (let i in this.$store.state.fileTabs) {
-        if (this.$store.state.fileTabs[i].fileName == newFileObj.fileName) {
-          check_duplicate_file = true;
-        }
-      }
-
-      if (check_duplicate_file) {
-        this.fileAlreadyOpened = true;
-      } else {
-        this.$store.state.fileTabs.push(newFileObj);
-        this.showAddFileModal = false;
-        this.$store.state.loadedFiles[this.newFileForm.fileName] = newFileObj;
-      }
+      let json = newFileTemplate;
+      let defnFileTitle = this.newFileForm.fileTitle || "Placeholder Title";
+      let defnFileDescription = this.newFileForm.fileDescription || "Placeholder Description";
+      let defnFileName = this.newFileForm.fileName || "0B-OpenAPI-DefnFile.json";
+      json["info"]["title"] = defnFileTitle;
+      json["info"]["description"] = defnFileDescription;
+      this.loadFileFromJSON(json, defnFileName);
     },
-
     fromSuperClass(childNode) {
-      if (childNode["fromSuperClass"]) {
-        return true;
-      } else {
-        return false;
-      }
+      return Boolean(childNode["fromSuperClass"]);
     },
     exportFile() {
       this.$store.commit("exportFile");
@@ -594,7 +552,7 @@ export default {
         fileToExport = this.$store.state.currentFile.fullFileForExport;
         exportModalHeader = "Save as...";
       } else if (fileToExportType === "sampleJSON") {
-        fileToExport = miscUtilities.getSampleJSON(this.$store.state.currentFile.fileName, this.$store.state);
+        fileToExport = miscUtilities.getSampleJSON({ fileName: this.$store.state.currentFile.fileName, state: this.$store.state });
         exportModalHeader = "Create Sample JSON";
       }
       this.$store.commit("setFileToExport", {
@@ -618,13 +576,17 @@ export default {
         this.$store.state.loadedFiles
       );
     },
-    getArrayItemAsChildren(file, arrayItemRef, key) {
-      return miscUtilities.getArrayItemAsChildren(
-        file,
-        arrayItemRef,
-        key,
-        this.$store.state.loadedFiles
-      );
+    getArrayItemAsChildren(file, arrayItem, key) {
+      if (this.isTaxonomyElementArray(arrayItem)) {
+        return {};
+      } else {
+        return miscUtilities.getArrayItemAsChildren(
+          file,
+          arrayItem["$ref"],
+          key,
+          this.$store.state.loadedFiles
+        );
+      }
     },
 
     loadMore() {
@@ -640,50 +602,36 @@ export default {
       this.showMissingRefsErr = false;
       this.fileAlreadyOpened = false;
     },
-    loadFile() {
+    loadFileFromJSON(json, fileName) {
       let refsRequired = [];
       this.missingRefsRequired = [];
       this.showMissingRefsErr = false;
-      let file_obj = {
-        fileName: this.file.name
-      };
+      let file_obj = { fileName };
+      let itemTypes = json["x-ob-item-types"];
+      let itemTypeGroups = json["x-ob-item-type-groups"];
 
+      file_obj["fullFileForExport"] = json;
+      file_obj["file"] = json.components.schemas;
+      file_obj["item_types"] = itemTypes || {}
+      file_obj["item_type_groups"] = itemTypeGroups || {};
+
+      this.tryLoadFile(file_obj);
+    },
+    isFileOpen(fileName) {
+      return this.$store.state.fileTabs.some(file => file.fileName === fileName);
+    },
+    tryLoadFile(file_obj) {
+      if (this.isFileOpen(file_obj.fileName)) {
+        this.fileAlreadyOpened = true;
+      } else {
+        this.showAddFileModal = false;
+        this.$store.commit("loadFile", file_obj);
+      }
+    },
+    loadFileFromFileSystem() {
       let reader = new FileReader();
-      let check_duplicate_file = false;
-
       reader.readAsText(this.file);
-      reader.onload = () => {
-        file_obj["fullFileForExport"] = JSON.parse(reader.result);
-        file_obj["file"] = file_obj["fullFileForExport"].components.schemas;
-
-        // todo: refactor to make into a function that is also used in create() 
-        // stores item types and item types groups of loaded file
-        if (file_obj["fullFileForExport"]["x-ob-item-types"]) {
-          file_obj["item_types"] = file_obj["fullFileForExport"]["x-ob-item-types"]
-        } else {
-          file_obj["item_types"] = {}
-        }
-
-        if (file_obj["fullFileForExport"]["x-ob-item-type-groups"]) {
-          file_obj["item_type_groups"] = file_obj["fullFileForExport"]["x-ob-item-type-groups"]
-        } else {
-          file_obj["item_type_groups"] = {}
-        }
-
-        for (let i in this.$store.state.fileTabs) {
-          if (this.$store.state.fileTabs[i].fileName == file_obj.fileName) {
-            check_duplicate_file = true;
-          }
-        }
-
-        if (check_duplicate_file) {
-          this.fileAlreadyOpened = true;
-        } else {
-          this.$store.state.fileTabs.push(file_obj);
-          this.showAddFileModal = false;
-          this.$store.commit("loadFile", file_obj);
-        }
-      };
+      reader.onload = () => this.loadFileFromJSON(JSON.parse(reader.result), this.file.name);
     },
     cancelLoadModal() {
       this.showAddFileModal = false;
@@ -727,14 +675,44 @@ export default {
       return defnRef;
     },
     defnRefParentTrailStart(nodeName, fileName) {
-      return miscUtilities.generateUniqueRef(nodeName, fileName, "root");
+      return { trail: [nodeName], fileName};
     },
     isViewObj(el) {
-      if (this.$store.state.viewObjs.includes(el)) {
-        return true
-      } else {
-        return false
+      return this.$store.state.viewObjs.includes(el);
+    },
+    isTaxonomyElementArray(arrItem) {
+      return !arrItem["$ref"] && miscUtilities.getOpenAPITypes().includes(arrItem["type"]);
+    },
+    processURLParameters(query) {
+      this.$store.commit('clearEditorView');
+
+      if (!query["view"]) {
+        this.$store.commit('changeViewerMode', 'Edit Mode');
+        return;
       }
+
+      let viewObjs = query["view"].split(',');
+
+      if (viewObjs.includes('all')) {
+        this.$store.commit('changeViewerMode', 'Edit Mode');
+      } else {
+        query["view"].split(',').forEach(obj => this.$store.commit("addViewObj", { el: obj, mode: "init" }));
+      }
+
+      let url = this.GitHubTaxonomyRaw;
+      let fileName = url.substring(url.lastIndexOf('/') + 1);
+      this.newFileForm.fileTitle = fileName;
+      this.newFileForm.fileName = fileName;
+
+      fetch(url).then(res => res.json())
+        .then(json => this.loadFileFromJSON(json, fileName));
+    },
+    editorViewLink(objName) {
+      let currentURL = window.location.href;
+      if (currentURL.indexOf("?") > 0) {
+        currentURL = currentURL.substring(0, currentURL.indexOf("?"));
+      }
+      return `${currentURL}?view=${objName}`;
     }
   },
   watch: {
@@ -878,19 +856,19 @@ export default {
       let isTaxonomyElement = false;
 
       //file parameter is the local file
-      //fileReference is the reference file
-      let fileReference = this.$store.state.currentFile.file;
+      //referenceFile is the reference file
+      let referenceFile = this.$store.state.currentFile.file;
 
-      if (fileReference) {
-        Object.keys(fileReference).forEach(key => {
+      if (referenceFile) {
+        Object.keys(referenceFile).forEach(key => {
           isTaxonomyElement = false;
           isLocal = true;
           superClass_lst = [];
-          fileReference = this.$store.state.currentFile.file;
+          referenceFile = this.$store.state.currentFile.file;
           let isViewObj = this.isViewObj(key)
 
           defnRef = miscUtilities.getDefnRef(
-            fileReference,
+            referenceFile,
             key,
             null,
             this.$store.state.loadedFiles
@@ -899,87 +877,87 @@ export default {
           refFileContext = miscUtilities.getRefFileContext(defnRef);
 
           if (refFileContext != "LOCAL") {
-            fileReference = this.$store.state.loadedFiles[refFileContext][
+            referenceFile = this.$store.state.loadedFiles[refFileContext][
               "file"
             ];
             isLocal = false;
           }
 
-          if (fileReference[key]["type"] == "object") {
+          let childDef = referenceFile[key];
+
+          if (childDef["type"] == "object") {
             nodeType = "Object";
-            obj_lst.push([
+            obj_lst.push({
               key,
-              fileReference[key],
+              childDef,
               nodeType,
-              fileReference,
+              referenceFile,
               isLocal,
               isViewObj
-            ]);
-          } else if (fileReference[key]["allOf"]) {
-            for (let i in fileReference[key]["allOf"]) {
-              if (fileReference[key]["allOf"][i]["$ref"]) {
-                superClass_lst.push(fileReference[key]["allOf"][i]["$ref"]);
+            });
+          } else if (childDef["allOf"]) {
+            for (let superclass of childDef["allOf"]) {
+              if (superclass["$ref"]) {
+                superClass_lst.push(superclass["$ref"]);
               } else {
-                subClass_obj = fileReference[key]["allOf"][i];
+                subClass_obj = superclass;
               }
             }
             nodeType = "";
 
             // check if TaxonomyElement, if it only has 1 ref and that ref includes TaxonomyElement in string
-            if (superClass_lst.length == 1) {
-              for (let i in superClass_lst) {
-                if (superClass_lst[i].includes("TaxonomyElement")) {
-                  isTaxonomyElement = true;
-                }
-              }
-            }
+            let isTaxonomyElement = superClass_lst.length === 1 && superClass_lst[0].includes("TaxonomyElement");
+
+            let data = {
+              key,
+              subClass_obj,
+              nodeType,
+              superClass_lst,
+              referenceFile,
+              isLocal
+            };
 
             if (isTaxonomyElement) {
-              nodeType = "TaxonomyElement";
-              el_lst.push([
-                key,
-                subClass_obj,
-                nodeType,
-                superClass_lst,
-                fileReference,
-                isLocal
-              ]);
+              data.nodeType = "TaxonomyElement";
+              el_lst.push(data);
             } else {
-              nodeType = "ObjWithInherit";
-              obj_lst.push([
-                key,
-                subClass_obj,
-                nodeType,
-                superClass_lst,
-                fileReference,
-                isLocal
-              ]);
+              data.nodeType = "ObjWithInherit";
+              obj_lst.push(data);
             }
-          } else if (fileReference[key]["type"] == "array" && fileReference[key]["items"]) {
+          } else if (childDef["type"] == "array" && childDef["items"]) {
             nodeType = "Array";
-            arr_item = fileReference[key]["items"]["$ref"];
-            arr_lst.push([
+            arr_item = childDef["items"];
+            arr_lst.push({
               key,
-              fileReference[key],
+              childDef,
               nodeType,
-              fileReference,
+              referenceFile,
               isLocal,
               arr_item
-            ]);
+            });
           } else {
-            immutable_lst.push([
+            immutable_lst.push({
               key,
-              fileReference[key],
-              fileReference,
+              childDef,
+              nodeType: miscUtilities.capitalizeFirstChar(childDef["type"]),
+              referenceFile,
               isLocal
-            ]);
+            });
           }
         });
 
-        obj_lst.sort();
-        el_lst.sort();
-        immutable_lst.sort();
-        arr_lst.sort();
+        let sortByKey = (a, b) => {
+          if (a.key < b.key) {
+            return -1;
+          } else if (a.key > b.key) {
+            return 1;
+          }
+          return 0;
+        }
+        obj_lst.sort(sortByKey);
+        el_lst.sort(sortByKey);
+        immutable_lst.sort(sortByKey);
+        arr_lst.sort(sortByKey);
         let returnArr = obj_lst
           .concat(arr_lst)
           .concat(el_lst)
@@ -987,11 +965,11 @@ export default {
         
         if (this.$store.state.viewerMode == 'Edit Mode') {
           returnArr = returnArr.filter(node => {
-              return miscUtilities.wildcardSearch(node[0].toLowerCase(), this.treeSearchTerm.toLowerCase());
+              return miscUtilities.wildcardSearch(node.key.toLowerCase(), this.treeSearchTerm.toLowerCase());
           });
         } else if (this.$store.state.viewerMode == 'View Mode') {
           returnArr = returnArr.filter(node => {
-              return miscUtilities.viewObjFilter(node[0], this.$store.state.viewObjs);
+              return miscUtilities.viewObjFilter(node.key, this.$store.state.viewObjs);
           });
         }
         this.filteredCount = returnArr.length;

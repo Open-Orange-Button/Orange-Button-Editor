@@ -220,7 +220,7 @@ export default {
             this.submitted = false
         },
         createItemTypeGroupRef(itemTypeName) {
-            return "#/components/x-ob-units/" + itemTypeName
+            return `#/x-ob-item-types/${itemTypeName}`;
         }                          
     },
     computed: {

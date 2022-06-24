@@ -6,13 +6,42 @@
         label="OB Definition type:"
         label-for="node-type-input"
       >
+        <b-row>
+        <b-col>
+          <b-form-select
+            id="node-type-input"
+            v-model="definitionType"
+            :options="OBDataTypes"
+            :disabled="!preSubmit"
+            :state="Boolean(definitionType)"
+            @change="formatForm"
+          ></b-form-select>
+        </b-col>
+        <b-col sm="auto">
+          <v-icon name="info-circle" scale="1.5" id="info-tooltip-target" />
+          <b-tooltip target="info-tooltip-target" triggers="click hover" placement="right">
+            <b>{{ definitionType ? definitionType + ": " : "" }}</b><span v-html="OBDataTypeInfo[definitionType]" />
+          </b-tooltip>
+        </b-col>
+        </b-row>
+      </b-form-group>
+      <b-form-group
+          label="OpenAPI Element Type"
+          label-for="node-openapi-element-type-input"
+          v-if="definitionType === OBTaxonomyElementDisplayName"
+        >
         <b-form-select
-          id="node-type-input"
-          v-model="definitionType"
-          :options="OBDataTypes"
+          id="node-openapi-element-type-input"
+          v-model="selectedOpenAPIType"
+          :options="OpenAPITypeOptions"
           :disabled="!preSubmit"
-          :state="Boolean(definitionType)"
+          :state="Boolean(selectedOpenAPIType)"
+          @change="formatForm"
         ></b-form-select>
+        <b-form-checkbox
+          v-model="isOBTaxonomyElementArray"
+          :disabled="!preSubmit"
+        >Array</b-form-checkbox>
       </b-form-group>
       <b-form-group
         id="node-name-input-group"
@@ -52,36 +81,18 @@
       </b-form-group>
 
       <b-form-group
-        id="node-sample-value-input-group"
-        label="Sample:"
-        label-for="node-sample-value-input"
-      >
-        <b-form-textarea
-          id="node-sample-value-input"
-          v-model="selectedOBSampleValue"
-          :state="Boolean(selectedOBSampleValue) ? validateSampleValueJSON(selectedOBSampleValue) : false"
-          :disabled="!preSubmit"
-        ></b-form-textarea>
-      </b-form-group>
-
-      <b-form-group
         id="node-item-type-input-group"
         label="OB Item Type:"
         label-for="node-item-type-input"
-        v-if="
-          definitionType == 'OB Taxonomy Element String' ||
-            definitionType == 'OB Taxonomy Element Number' ||
-            definitionType == 'OB Taxonomy Element Integer' ||
-            definitionType == 'OB Taxonomy Element Boolean' ||
-            definitionType == 'OB Taxonomy Element Array'
-        "
+        v-if="definitionType === OBTaxonomyElementDisplayName && selectedOpenAPIType"
       >
         <b-form-select
           id="node-item-type-input"
           v-model="selectedOBItemType"
-          :options="allItemTypesComputed"
+          :options="itemTypeOptions"
           :disabled="!preSubmit"
           :state="Boolean(selectedOBItemType)"
+          @change="formatForm"
         ></b-form-select>
       </b-form-group>
 
@@ -94,22 +105,48 @@
           id="create-def-item-type-group-input"
           v-model="selectedItemTypeGroup"
           :options="allPossibleItemTypeGroups"
+          :disabled="!preSubmit"
         ></b-form-select>
       </b-form-group>
 
-      <!-- <div class="enum-or-unit-table-container" v-if="selectedOBItemTypeType">              
-        <b-table 
-            @row-selected="onRowSelected" 
-            selectable 
-            select-mode="single"
-            :fields="returnEnumOrUnitFields(selectedOBItemTypeType)" 
-            :items="itemTypeEnumsOrUnitsComputed" 
-            class="item-type-table"
-        >
-        </b-table>
-      </div> -->
+      <b-form-group
+        id="node-sample-value-input-group"
+        v-if="definitionType === OBTaxonomyElementDisplayName"
+      >
+        <b-form-checkbox
+          v-model="addSampleValue"
+          :disabled="!preSubmit"
+        >Add Sample Value
+        </b-form-checkbox>
+        <div v-if="addSampleValue">
+          <div v-for="[name, data] in Object.entries(sampleValuePrimitives)
+                                            .sort((a, b) => a[1].order - b[1].order)
+                                            .filter(p => sampleValueFormContext[p[0]].show)">
+            {{ `${sampleValueFormContext[name].isArray ? 'Array Item ' : ''}${name}:` }}
+              <component
+                v-if="name === 'Value'"
+                :is="sampleValueValueOptions.length > 0 ? 'b-form-select' : 'b-form-input'"
+                v-model="data.value"
+                :options="sampleValueValueOptions"
+                :state="miscUtils.validateByOpenAPIType({ value: data.value, selectedOpenAPIType })
+                  && (OBEnumItemTypeIgnoreMap[selectedOBItemType] ? OBEnumItemTypeIgnoreMap[selectedOBItemType].validate(data.value) : true)"
+                :disabled="!preSubmit" />
+              <b-form-select
+                v-else-if="name === 'Unit'"
+                v-model="data.value"
+                :options="sampleValueUnitOptions"
+                :state="Boolean(data.value)"
+                :disabled="!preSubmit" />
+              <b-form-input
+                v-else
+                v-model="data.value"
+                :state="Boolean(data.value) || !sampleValueFormContext[name].isRequired"
+                :disabled="!preSubmit" />
+          </div>
+        </div>
+      </b-form-group>
 
-      <span v-if="definitionType == 'OB Array'">
+      <span v-if="definitionType == 'OB Object Array'">
         <div>Choose array item:</div>
         <div>Select document to choose array item from:</div>
         <b-form-select
@@ -178,6 +215,7 @@ export default {
   },
   data() {
     return {
+      miscUtils: miscUtilities,
       allItemTypes: null,
       selectedOBItemTypeType: null,
       selectedOBItemTypeDescription: null,
@@ -185,28 +223,21 @@ export default {
       selectedItemTypeGroup: '',
       possibleItemTypeGroups: [],
       definitionName: null,
-      definitionType: null,
+      definitionType: "",
       definitionDescription: null,
       preSubmit: true,
       submissionError: false,
       submissionErrorMsg: "",
-      OBDataTypes: [
-        "OB Object",
-        "OB Array",
-        "OB Taxonomy Element String",
-        "OB Taxonomy Element Number",
-        "OB Taxonomy Element Integer",
-        "OB Taxonomy Element Boolean",
-        "OB Taxonomy Element Array"
-      ],
+      OBTaxonomyElementDisplayName: "OB Element",
       arrayItemSearchTerm: "",
       selectedFileName: null,
       selectedDefnIndex: null,
       selectedDefnName: null,
 
+      selectedOpenAPIType: null,
+      isOBTaxonomyElementArray: false,
       selectedOBItemType: null,
       selectedOBUsageTips: "",
-      selectedOBSampleValue: null,
       unitFields: [
           { key: "enumOrUnitID", label: "Unit ID", thStyle: { width: "150px" } }, 
           { key: "enumOrUnitLabel", label: "Unit Label", thStyle: { width: "150px" } },
@@ -216,18 +247,13 @@ export default {
           { key: "enumOrUnitID", label: "Enum ID", thStyle: { width: "150px" } }, 
           { key: "enumOrUnitLabel", label: "Enum Label", thStyle: { width: "150px" } },
           { key: "enumOrUnitDescription", label: "Enum Description"}
-      ],         
+      ],
+      addSampleValue: false,
+      sampleValuePrimitives: miscUtilities.getSampleValueData(),
+      OBEnumItemTypeIgnoreMap: miscUtilities.OBEnumItemTypeIgnoreMap()
     };
   },
   methods: {
-    validateSampleValueJSON() {
-      try {
-        JSON.parse(this.selectedOBSampleValue);
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
     onRowSelected(items) {
         this.selectedEnumOrUnit = items
     },    
@@ -239,33 +265,54 @@ export default {
       this.preSubmit = true;
       this.$store.commit("showNoView");
     },
-    createElement() {
+    validateForm() {
       if(!this.definitionType) {
         this.submissionErrorMsg = "Please select a definition type.";
-        this.submissionError = true;
-        return;
+        return false;
       } else if(!this.definitionName) {
         this.submissionErrorMsg = "Please enter a definition name.";
-        this.submissionError = true;
-        return;
+        return false;
       } else if(!this.definitionDescription) {
         this.submissionErrorMsg = "Please enter a definition description.";
-        this.submissionError = true;
-        return;
-      } else if(this.definitionType === "OB Array" && (!this.selectedFileName || !this.selectedDefnName)) {
+        return false;
+      } else if(this.definitionType === "OB Object Array" && (!this.selectedFileName || !this.selectedDefnName)) {
         this.submissionErrorMsg = "Please select a file and an array item.";
-        this.submissionError = true;
-        return;
-      } else if(this.definitionType.substring(0,19) === "OB Taxonomy Element" && !this.selectedOBItemType) {
-        this.submissionErrorMsg = "Please select an OB Item Type."
-        this.submissionError = true;
-        return;
-      } else if(!this.selectedOBSampleValue || !this.validateSampleValueJSON()) {
-        this.submissionErrorMsg = "Invalid SampleValue JSON."
+        return false;
+      } else if(this.definitionType === this.OBTaxonomyElementDisplayName && (!this.selectedOBItemType || !this.selectedOpenAPIType)) {
+        if (!this.selectedOBItemType) {
+          this.submissionErrorMsg = "Please select an OB Item Type."
+        } else if (!this.selectedOpenAPIType) {
+          this.submissionErrorMsg = "Please select an OpenAPI Element Type";
+        }
+        return false;
+      }
+
+      if (this.addSampleValue) {
+        this.submissionErrorMsg = miscUtilities.isValidSampleValueForm({
+          sampleValueFormContext: this.sampleValueFormContext,
+          sampleValuePrimitives: this.sampleValuePrimitives,
+          selectedOpenAPIType: this.selectedOpenAPIType,
+          selectedOBItemType: this.selectedOBItemType,
+          OBEnumItemTypeIgnoreMap: this.OBEnumItemTypeIgnoreMap });
+        if (this.submissionErrorMsg) {
+          return false;
+        }
+      }
+
+      return true;
+    },
+    createElement() {
+      if (!this.validateForm()) {
         this.submissionError = true;
         return;
       }
-      
+      let sampleValueJSON = {};
+      if (this.addSampleValue) {
+        sampleValueJSON = miscUtilities.buildSampleValueObject({
+          sampleValuePrimitives: this.sampleValuePrimitives,
+          selectedOpenAPIType: this.selectedOpenAPIType,
+          isOBTaxonomyElementArray: this.isOBTaxonomyElementArray });
+      }
       let payload = {
         definitionName: this.definitionName,
         definitionType: this.definitionType,
@@ -274,8 +321,10 @@ export default {
         arrayItemFileName: this.selectedFileName,
         OBItemType: this.selectedOBItemType,
         OBItemTypeGroup: this.selectedItemTypeGroup,
+        OpenAPIType: this.selectedOpenAPIType ? miscUtilities.capitalizeFirstChar(this.selectedOpenAPIType) : '',
+        isOBTaxonomyElementArray: this.isOBTaxonomyElementArray,
         OBUsageTips: this.selectedOBUsageTips,
-        OBSampleValue: JSON.parse(this.selectedOBSampleValue)
+        OBSampleValue: sampleValueJSON
       };
       this.preSubmit = false;
 
@@ -295,24 +344,50 @@ export default {
       }
     },
     findPossibleItemTypeGroups() {
-      for (let i in this.allItemTypeGroups) {
-        if (this.allItemTypeGroups[i]['type'].includes(this.selectedOBItemType)) {
-          this.possibleItemTypeGroups.push(i)
-        }
-      }
+      this.possibleItemTypeGroups = Object.entries(this.allItemTypeGroups)
+        .filter(([_, defn]) => defn.type.includes(this.selectedOBItemType))
+        .map(([name, _]) => name);
       this.possibleItemTypeGroups.push({value: '', text: 'None'})
+    },
+    formatForm() {
+      this.sampleValuePrimitives = miscUtilities.getSampleValueData();
     }
   },
   computed: {
-    allItemTypesComputed() {
-      let ret_arr = []
-      let itemTypeName = ''
-      for (let i in this.allItemTypes) {
-          itemTypeName = i
-          ret_arr.push(itemTypeName)
+    OBDataTypes() {
+      return [
+        this.OBTaxonomyElementDisplayName,
+        "OB Object",
+        "OB Object Array"
+      ];
+    },
+    OBDataTypeInfo() {
+      let info = {
+        "": "Select a definition type to view more information.",
+        "OB Object": ("an object whose fields are other OB objects or elements.<br>" +
+                      "These fields are added to the object after it is defined."),
+        "OB Object Array": ("an array whose items are an OB object or element.<br>" +
+                            "The array item is chosen when the array is defined.")
+      };
+      info[this.OBTaxonomyElementDisplayName] = ("an object whose fields are primitives.<br>" + //: Value, Units, StartTime, EndTime, Decimals, and Precision.<br>" +
+                                                 "All primitives are strings except Value which is one of these OpenAPI types: boolean, integer, number, string, or array.<br>" +
+                                                 "To define Value as an array, choose one of the other four types and check the 'Array' checkbox.");
+      return info;
+    },
+    itemTypeOptions() {
+      let forBooleanOpenAPIType = ([name, _]) => name === 'BooleanItemType';
+      let forStringOpenAPIType =  ([_, def]) => !def.units;
+      let forNumericOpenAPIType = ([_, def]) => !def.enums;
+      let forOpenAPIType;
+      if (this.selectedOpenAPIType === 'boolean') {
+        forOpenAPIType = forBooleanOpenAPIType;
+      } else if (this.selectedOpenAPIType === 'string') {
+        forOpenAPIType = forStringOpenAPIType;
+      } else if (['integer', 'number'].includes(this.selectedOpenAPIType)) {
+        forOpenAPIType = forNumericOpenAPIType;
       }
-
-      return ret_arr.sort()
+      return Object.entries(this.allItemTypes).filter(forOpenAPIType)
+        .map(([name, _]) => name).sort();
     },
     fileElements() {
       if (this.selectedFileName) {
@@ -337,135 +412,43 @@ export default {
       return optionsArr;
     },
     defnDetails() {
-      let temp_ret_obj = null;
-
-      let defnName = this.selectedDefnName;
-      let defnType = "";
-      let defnDescrip = "Documentation not available";
-      let defnEnum = "";
-      let temp_superClassList = [];
-      let temp_superClassListStr = "";
-      let defnObjChildren = "";
-      let typeOfDefn = null;
-
-      let defnFile = this.$store.state.loadedFiles[this.selectedFileName][
-        "file"
-      ];
-
-      if (defnFile[defnName]["allOf"]) {
-        if (miscUtilities.isTaxonomyElement(defnFile, defnName)) {
-          typeOfDefn = "TaxonomyElement";
-        } else {
-          typeOfDefn = "ObjWithInherit";
-        }
-        for (let i in defnFile[defnName]["allOf"]) {
-          if (defnFile[defnName]["allOf"][i]["$ref"]) {
-            temp_superClassList.push(
-              defnFile[defnName]["allOf"][i]["$ref"].slice(
-                defnFile[defnName]["allOf"][i]["$ref"].lastIndexOf("/") + 1
-              )
-            );
-          } else {
-            if (defnFile[defnName]["allOf"][i]["description"]) {
-              defnDescrip = defnFile[defnName]["allOf"][i]["description"];
-            }
-            if (defnFile[defnName]["allOf"][i]["type"]) {
-              defnType = defnFile[defnName]["allOf"][i]["type"];
-            }
-            if (defnFile[defnName]["allOf"][i]["enum"]) {
-              defnEnum = defnFile[defnName]["allOf"][i]["enum"];
-            }
-
-            if (typeOfDefn == "ObjWithInherit") {
-              if (defnFile[defnName]["allOf"][i]["properties"]) {
-                defnObjChildren = Object.keys(defnFile[defnName]["properties"]);
-              }
-            }
-          }
-        }
-      } else if (defnFile[defnName]["properties"]) {
-        typeOfDefn = "Obj";
-        if (defnFile[defnName]["type"]) {
-          defnType = defnFile[defnName]["type"];
-        }
-
-        if (defnFile[defnName]["properties"]["description"]) {
-          defnDescrip = defnFile[defnName]["properties"]["description"];
-        }
-
-        defnObjChildren = Object.keys(defnFile[defnName]["properties"]);
-      } else {
-        typeOfDefn = "Elem";
-        if (defnFile[defnName]["description"]) {
-          defnDescrip = defnFile[defnName]["description"];
-        }
-
-        if (defnFile[defnName]["type"]) {
-          defnType = defnFile[defnName]["type"];
-        }
-
-        if (defnFile[defnName]["enum"]) {
-          defnEnum = defnFile[defnName]["enum"];
-        }
-      }
-      if (temp_superClassList.length == 0) {
-        temp_superClassListStr = "None";
-      } else {
-        temp_superClassListStr = temp_superClassList.join(", ");
-      }
-
-      if (!defnEnum) {
-        defnEnum = "None";
-      } else {
-        defnEnum = defnEnum.join(", ");
-      }
-
-      if (defnObjChildren) {
-        defnObjChildren = defnObjChildren.join(", ");
-      } else {
-        defnObjChildren = "None";
-      }
-
-      if (typeOfDefn == "ObjWithInherit") {
-        temp_ret_obj = [
-          { Attributes: "Name", Values: defnName },
-          { Attributes: "Type", Values: defnType },
-          { Attributes: "Documentation", Values: defnDescrip },
-          { Attributes: "Superclasses", Values: temp_superClassListStr },
-          { Attributes: "Children", Values: defnObjChildren }
-        ];
-      } else if (typeOfDefn == "TaxonomyElement") {
-        temp_ret_obj = [
-          { Attributes: "Name", Values: defnName },
-          { Attributes: "Type", Values: defnType },
-          { Attributes: "Documentation", Values: defnDescrip },
-          { Attributes: "Superclasses", Values: temp_superClassListStr }
-        ];
-      } else if (typeOfDefn == "Obj") {
-        temp_ret_obj = [
-          { Attributes: "Name", Values: defnName },
-          { Attributes: "Type", Values: defnType },
-          { Attributes: "Documentation", Values: defnDescrip },
-          { Attributes: "Children", Values: defnObjChildren }
-        ];
-      } else if (typeOfDefn == "Elem") {
-        temp_ret_obj = [
-          { Attributes: "Name", Values: defnName },
-          { Attributes: "Type", Values: defnType },
-          { Attributes: "Enumeration", Values: defnEnum },
-          { Attributes: "Documentation", Values: defnDescrip }
-        ];
-      }
-
-      let arr = temp_ret_obj;
-
-      return arr;
+      return miscUtilities.defnDetails({
+        defnName: this.selectedDefnName,
+        fileName: this.selectedFileName,
+        state: this.$store.state });
     },
     itemTypeEnumsOrUnitsComputed() {
       return this.selectedOBItemTypeEnumsOrUnits
     },
     allPossibleItemTypeGroups() {
       return this.possibleItemTypeGroups
+    },
+    sampleValueFormContext() {
+      return miscUtilities.sampleValueFormContext({
+        selectedOpenAPIType: this.selectedOpenAPIType,
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        isOBTaxonomyElementArray: this.isOBTaxonomyElementArray });
+    },
+    sampleValueValueOptions() {
+      return miscUtilities.sampleValueValueOptions({
+        selectedOpenAPIType: this.selectedOpenAPIType,
+        selectedOBItemType: this.selectedOBItemType,
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        OBEnumItemTypeIgnoreMap: this.OBEnumItemTypeIgnoreMap,
+        itemTypeEnumsOrUnitsComputed: this.itemTypeEnumsOrUnitsComputed,
+        selectedItemTypeGroup: this.selectedItemTypeGroup,
+        allItemTypeGroups: this.allItemTypeGroups });
+    },
+    sampleValueUnitOptions() {
+      return miscUtilities.sampleValueUnitOptions({
+        selectedOBItemTypeType: this.selectedOBItemTypeType,
+        itemTypeEnumsOrUnitsComputed: this.itemTypeEnumsOrUnitsComputed,
+        selectedItemTypeGroup: this.selectedItemTypeGroup,
+        allItemTypeGroups: this.allItemTypeGroups });
+    },
+    OpenAPITypeOptions() {
+      return miscUtilities.getOpenAPITypes().sort()
+        .map(type => { return { value: type, text: miscUtilities.capitalizeFirstChar(type) }; });
     }
   },
   watch: {
@@ -478,14 +461,12 @@ export default {
       this.selectedDefnIndex = null;
       this.selectedDefnName = null;
       this.selectedOBUsageTips = "";
-      this.selectedOBSampleValue = JSON.stringify({"Decimals":"","EndTime":"","Precision":"","StartTime":"","Unit":"","Value":""}, null, 2);
     },
     "$store.state.isSelected"() {
       this.definitionType = null;
       this.definitionName = null;
       this.definitionDescription = null;
       this.selectedOBUsageTips = "";
-      this.selectedOBSampleValue = JSON.stringify({"Decimals":"","EndTime":"","Precision":"","StartTime":"","Unit":"","Value":""}, null, 2);
       if (!this.preSubmit) {
         this.preSubmit = true;
       }
@@ -500,7 +481,6 @@ export default {
         this.selectedDefnIndex = null;
         this.selectedDefnName = null;
         this.selectedOBUsageTips = "";
-        this.selectedOBSampleValue = JSON.stringify({"Decimals":"","EndTime":"","Precision":"","StartTime":"","Unit":"","Value":""}, null, 2);
         if (!this.preSubmit) {
           this.preSubmit = true;
         }
@@ -514,65 +494,11 @@ export default {
     },
     selectedOBItemType() {
       if (this.selectedOBItemType) {
-        this.selectedOBItemTypeType = ''
-        this.selectedOBItemTypeDescription = ''
-        this.selectedOBItemTypeEnumsOrUnits = []
-
-        let enumOrUnitID = ''
-        let enumOrUnitLabel = ''
-        let enumOrUnitDescription = ''
-
-        let currentItemTypeObj = this.allItemTypes[this.selectedOBItemType]
-        this.findPossibleItemTypeGroups()
-        if ("description" in currentItemTypeObj)
-            this.selectedOBItemTypeDescription = currentItemTypeObj["description"]
-
-          // refactor: repeated code
-        if ("enums" in currentItemTypeObj) {
-          this.selectedOBItemTypeType = 'enums'
-          for (let i in currentItemTypeObj['enums']) {
-            enumOrUnitID = i
-            if ('label' in currentItemTypeObj['enums'][i]) {
-                enumOrUnitLabel = currentItemTypeObj['enums'][i]['label']
-            } else {
-                enumOrUnitLabel = ''
-            }
-
-            if ('description' in currentItemTypeObj['enums'][i]) {
-                enumOrUnitDescription = currentItemTypeObj['enums'][i]['description']
-            } else {
-                enumOrUnitDescription = ''
-            }                        
-
-            this.selectedOBItemTypeEnumsOrUnits.push({
-                'enumOrUnitID': enumOrUnitID,
-                'enumOrUnitLabel': enumOrUnitLabel,
-                'enumOrUnitDescription': enumOrUnitDescription
-            })
-          }
-        } else if ("units" in currentItemTypeObj) {
-          this.selectedOBItemTypeType = 'units' 
-          for (let i in currentItemTypeObj['units']) {
-            enumOrUnitID = i
-            if ('label' in currentItemTypeObj['units'][i]) {
-                enumOrUnitLabel = currentItemTypeObj['units'][i]['label']
-            } else {
-                enumOrUnitLabel = ''
-            }
-
-            if ('description' in currentItemTypeObj['units'][i]) {
-                enumOrUnitDescription = currentItemTypeObj['units'][i]['description']
-            } else {
-                enumOrUnitDescription = ''
-            }     
-
-            this.selectedOBItemTypeEnumsOrUnits.push({
-                'enumOrUnitID': enumOrUnitID,
-                'enumOrUnitLabel': enumOrUnitLabel,
-                'enumOrUnitDescription': enumOrUnitDescription
-            })
-          }
-        }
+        let selectedOBItemTypeDef = this.allItemTypes[this.selectedOBItemType];
+        this.selectedOBItemTypeType = miscUtilities.OBItemTypeType({ itemTypeDef: selectedOBItemTypeDef });
+        this.selectedOBItemTypeDescription = selectedOBItemTypeDef.description;
+        this.selectedOBItemTypeEnumsOrUnits = miscUtilities.buildItemTypeEnumsOrUnitsComputedList({ itemTypeDef: selectedOBItemTypeDef, itemTypeType: this.selectedOBItemTypeType });
+        this.findPossibleItemTypeGroups();
       }
     }
   }
@@ -595,4 +521,9 @@ export default {
   margin-top: 5px;
   margin-bottom: 10px;
 }
+
+div.tooltip-inner {
+  text-align: left;
+}
+
 </style>
