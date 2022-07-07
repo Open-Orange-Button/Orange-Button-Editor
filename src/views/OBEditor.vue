@@ -363,24 +363,36 @@
         </h4>
       </div>
       <div class="download-button-container">
-        <b-button
-          variant="primary"
-          v-b-modal.export-modal
-          @click="exportModalOpened('sampleJSON')"
-          :disabled="!$store.state.currentFile"
-          size="sm"
-          v-if="$store.state.viewerMode == 'Edit Mode'"
-          >Create Sample JSON</b-button
-        >
-        <b-button
-          variant="primary"
-          v-b-modal.export-modal
-          @click="exportModalOpened('taxonomy')"
-          :disabled="!$store.state.currentFile"
-          size="sm"
-          v-if="$store.state.viewerMode == 'Edit Mode'"
-          >Save As</b-button
-        >
+        <div v-if="$store.state.viewerMode === 'Edit Mode'">
+          <b-button
+            variant="primary"
+            v-b-modal.export-modal
+            @click="exportModalOpened('sampleJSON')"
+            :disabled="!$store.state.currentFile"
+            size="sm"
+           >Create Sample JSON</b-button>
+          <b-button
+            variant="primary"
+            v-b-modal.export-modal
+            @click="exportModalOpened('taxonomy')"
+            :disabled="!$store.state.currentFile"
+            size="sm"
+           >Save As</b-button>
+        </div>
+        <div v-else>
+            <b-button
+              id="copy-view-link-btn"
+              variant="primary"
+              @click="copyViewModeLinkToClipboard"
+              :disabled="$store.state.viewObjs.length === 0"
+              size="sm"
+            >Copy View Link</b-button>
+            <b-popover
+              target="copy-view-link-btn"
+              triggers="focus"
+              placement="left"
+            >Copied!</b-popover>
+        </div>
       </div>
     </div>
     <div class="element-editor-body">
@@ -687,6 +699,8 @@ export default {
       this.$store.commit('clearEditorView');
 
       if (!query["view"]) {
+        // add Site to View mode
+        this.$store.commit('addViewObj', { el: 'Site', mode: 'init' });
         this.$store.commit('changeViewerMode', 'Edit Mode');
         return;
       }
@@ -694,6 +708,8 @@ export default {
       let viewObjs = query["view"].split(',');
 
       if (viewObjs.includes('all')) {
+        // add Site to View mode
+        this.$store.commit('addViewObj', { el: 'Site', mode: 'init' });
         this.$store.commit('changeViewerMode', 'Edit Mode');
       } else {
         query["view"].split(',').forEach(obj => this.$store.commit("addViewObj", { el: obj, mode: "init" }));
@@ -713,6 +729,12 @@ export default {
         currentURL = currentURL.substring(0, currentURL.indexOf("?"));
       }
       return `${currentURL}?view=${objName}`;
+    },
+    copyViewModeLinkToClipboard() {
+      let viewObjs = this.$store.state.viewObjs;
+      navigator.clipboard.writeText(this.editorViewLink(viewObjs.join(',')))
+        .then(() => { /* success */ })
+        .catch(() => { /* failed */ });
     }
   },
   watch: {
