@@ -43,6 +43,10 @@
                       <b-form-checkbox
                         v-model="searchDefinitionUsages"
                       >Find Definition Usages</b-form-checkbox>
+                      (<b-form-checkbox
+                        v-model="searchDefinitionUsagesDirectOnly"
+                        :disabled="!searchDefinitionUsages"
+                      >Direct Only</b-form-checkbox>)
                     </div>
                   </div>
                 </div>
@@ -487,7 +491,8 @@ export default {
       GitHubTaxonomyUser: "https://github.com/Open-Orange-Button/Orange-Button-Taxonomy/blob/main/Master-OB-OpenAPI.json",
       GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
       latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}],
-      searchDefinitionUsages: false
+      searchDefinitionUsages: false,
+      searchDefinitionUsagesDirectOnly: true
     };
   },
   mounted() {
@@ -968,12 +973,19 @@ export default {
         let filterByWildcard = k => miscUtilities.wildcardSearch(k.toLowerCase(), this.treeSearchTerm.toLowerCase());
         let filterByViewObj = k => miscUtilities.viewObjFilter(k.toLowerCase(), this.$store.state.viewObjs);
         let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
-        let defnsToShowKeys = allDefnKeys.filter(defnFilter);
+        let defnsToShowKeys = new Set([...allDefnKeys.filter(defnFilter)]);
         if (this.searchDefinitionUsages) {
           let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
-          defnsToShowKeys = defnsToShowKeys.map(k => miscUtilities.findDefnUsages({ defnName: k, file })).flat();
+          let usages = [...defnsToShowKeys].map(k => miscUtilities.findDefnUsages({ defnName: k, file })).flat();
+          usages.forEach(k => defnsToShowKeys.add(k));
+          if (!this.searchDefinitionUsagesDirectOnly) {
+            while (usages.length > 0) {
+              usages = usages.map(k => miscUtilities.findDefnUsages({ defnName: k, file })).flat();
+              usages.forEach(k => defnsToShowKeys.add(k));
+            }
+          }
         }
-        let getDefnsInMap = defnMap => defnsToShowKeys.map(k => defnMap[k]).filter(defn => defn !== undefined);
+        let getDefnsInMap = defnMap => [...defnsToShowKeys].map(k => defnMap[k]).filter(defn => defn !== undefined);
         let defnsToShow = [getDefnsInMap(obj_map), getDefnsInMap(el_map),
                            getDefnsInMap(immutable_map), getDefnsInMap(arr_map)];
         defnsToShow.forEach(defns => defns.sort(sortByKey));

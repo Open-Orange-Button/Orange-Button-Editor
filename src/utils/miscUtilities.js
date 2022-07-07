@@ -833,9 +833,7 @@ export function findDefnUsages({ defnName, file }) {
   let usages = [];
   let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
   for (let [name, defn] of Object.entries(file)) {
-    if (name === defnName) { // defn uses itself
-      usages.push(name);
-    } else if (defn.allOf) { // taxonomy element or has inheritance
+    if (defn.allOf) { // taxonomy element or has inheritance
       let usedForInheritance = defn.allOf
         .filter(schema => schema.$ref && defnNameFromRef(schema.$ref) === defnName)
         .length > 0;
