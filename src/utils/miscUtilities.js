@@ -829,29 +829,29 @@ export function defnDetails({ defnName, fileName, state }) {
   return Object.entries(detailData).map(([attr, val]) => ({ Attributes: attr, Values: capitalizeFirstChar(val) }));
 }
 
-export function findDefnUsages({ defnName, file }) {
-  let usages = [];
+export function findDefnUsages({ defnNameSet, file }) {
+  let usages = new Set();
   let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
   for (let [name, defn] of Object.entries(file)) {
     if (defn.allOf) { // taxonomy element or has inheritance
       let usedForInheritance = defn.allOf
-        .filter(schema => schema.$ref && defnNameFromRef(schema.$ref) === defnName)
+        .filter(schema => schema.$ref && defnNameSet.has(defnNameFromRef(schema.$ref)))
         .length > 0;
       let usedAsProperty = defn.allOf
-        .filter(schema => Object.keys(schema.properties || {}).includes(defnName))
+        .filter(schema => Object.keys(schema.properties || {}).some(propName => defnNameSet.has(propName)))
         .length > 0;
       if (usedForInheritance || usedAsProperty) {
-        usages.push(name);
+        usages.add(name);
       }
     } else if (defn.properties) { // no inheritance
-      let usedAsProperty = Object.keys(defn.properties).includes(defnName);
+      let usedAsProperty = Object.keys(defn.properties).some(propName => defnNameSet.has(propName));
       if (usedAsProperty) {
-        usages.push(name);
+        usages.add(name);
       }
     } else if (defn.items) { // array of another schema definition
       let items = defn.items;
-      if (items.$ref && defnNameFromRef(items.$ref) === defnName) {
-        usages.push(name);
+      if (items.$ref && defnNameSet.has(defnNameFromRef(items.$ref))) {
+        usages.add(name);
       }
     } else { // primitive
     }

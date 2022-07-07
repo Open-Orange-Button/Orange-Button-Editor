@@ -976,11 +976,11 @@ export default {
         let defnsToShowKeys = new Set([...allDefnKeys.filter(defnFilter)]);
         if (this.searchDefinitionUsages) {
           let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
-          let usages = [...defnsToShowKeys].map(k => miscUtilities.findDefnUsages({ defnName: k, file })).flat();
+          let usages = miscUtilities.findDefnUsages({ defnNameSet: defnsToShowKeys, file });
           usages.forEach(k => defnsToShowKeys.add(k));
           if (!this.searchDefinitionUsagesDirectOnly) {
-            while (usages.length > 0) {
-              usages = usages.map(k => miscUtilities.findDefnUsages({ defnName: k, file })).flat();
+            while (usages.size > 0) {
+              usages = miscUtilities.findDefnUsages({ defnNameSet: usages, file });
               usages.forEach(k => defnsToShowKeys.add(k));
             }
           }
