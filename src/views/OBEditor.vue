@@ -31,13 +31,20 @@
                 </span>
               </template>
               <span v-if="$store.state.currentFile">
-                <div class="tree-search" v-if="$store.state.viewerMode == 'Edit Mode'">
-                  <b-form-input
-                    class="tree-search-bar"
-                    v-model="treeSearchTerm"
-                    placeholder="Search element names... (wildcard: * )"
-                  >
-                  </b-form-input>
+                <div class="tree-search">
+                  <div v-if="$store.state.viewerMode == 'Edit Mode'">
+                    <b-form-input
+                      class="tree-search-bar"
+                      v-model="treeSearchTerm"
+                      placeholder="Search element names... (wildcard: * )"
+                    />
+                    <div class="tree-search-options">
+                      <span style="padding-right: 0.3em">Search Options: </span>
+                      <b-form-checkbox
+                        v-model="searchDefinitionUsages"
+                      >Find Definition Usages</b-form-checkbox>
+                    </div>
+                  </div>
                 </div>
                 <span :key="$store.state.refreshKey">
                   <span v-for="arr in sortedObjects">
@@ -479,7 +486,8 @@ export default {
       treeSearchTerm: "",
       GitHubTaxonomyUser: "https://github.com/Open-Orange-Button/Orange-Button-Taxonomy/blob/main/Master-OB-OpenAPI.json",
       GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
-      latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}]
+      latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}],
+      searchDefinitionUsages: false
     };
   },
   mounted() {
@@ -830,11 +838,11 @@ export default {
       return this.$store.state.fileTabs;
     },
     sortedObjects() {
-      let obj_lst = [];
-      let el_lst = [];
-      let arr_lst = [];
+      let obj_map = {}; 
+      let el_map = {};
+      let arr_map = {};
       let arr_item = "";
-      let immutable_lst = [];
+      let immutable_map= {};
       let superClass_lst = [];
       let subClass_obj = {};
       let immutable_OB = [
@@ -887,14 +895,14 @@ export default {
 
           if (childDef["type"] == "object") {
             nodeType = "Object";
-            obj_lst.push({
+            obj_map[key] = {
               key,
               childDef,
               nodeType,
               referenceFile,
               isLocal,
               isViewObj
-            });
+            };
           } else if (childDef["allOf"]) {
             for (let superclass of childDef["allOf"]) {
               if (superclass["$ref"]) {
@@ -919,30 +927,30 @@ export default {
 
             if (isTaxonomyElement) {
               data.nodeType = "TaxonomyElement";
-              el_lst.push(data);
+              el_map[key] = data;
             } else {
               data.nodeType = "ObjWithInherit";
-              obj_lst.push(data);
+              obj_map[key] = data;
             }
           } else if (childDef["type"] == "array" && childDef["items"]) {
             nodeType = "Array";
             arr_item = childDef["items"];
-            arr_lst.push({
+            arr_map[key] = {
               key,
               childDef,
               nodeType,
               referenceFile,
               isLocal,
               arr_item
-            });
+            };
           } else {
-            immutable_lst.push({
+            immutable_map[key] = {
               key,
               childDef,
               nodeType: miscUtilities.capitalizeFirstChar(childDef["type"]),
               referenceFile,
               isLocal
-            });
+            };
           }
         });
 
@@ -954,26 +962,24 @@ export default {
           }
           return 0;
         }
-        obj_lst.sort(sortByKey);
-        el_lst.sort(sortByKey);
-        immutable_lst.sort(sortByKey);
-        arr_lst.sort(sortByKey);
-        let returnArr = obj_lst
-          .concat(arr_lst)
-          .concat(el_lst)
-          .concat(immutable_lst);
-        
-        if (this.$store.state.viewerMode == 'Edit Mode') {
-          returnArr = returnArr.filter(node => {
-              return miscUtilities.wildcardSearch(node.key.toLowerCase(), this.treeSearchTerm.toLowerCase());
-          });
-        } else if (this.$store.state.viewerMode == 'View Mode') {
-          returnArr = returnArr.filter(node => {
-              return miscUtilities.viewObjFilter(node.key, this.$store.state.viewObjs);
-          });
+
+        let allDefnKeys = [Object.keys(obj_map), Object.keys(el_map),
+                           Object.keys(immutable_map), Object.keys(arr_map)].flat();
+        let filterByWildcard = k => miscUtilities.wildcardSearch(k.toLowerCase(), this.treeSearchTerm.toLowerCase());
+        let filterByViewObj = k => miscUtilities.viewObjFilter(k.toLowerCase(), this.$store.state.viewObjs);
+        let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
+        let defnsToShowKeys = allDefnKeys.filter(defnFilter);
+        if (this.searchDefinitionUsages) {
+          let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
+          defnsToShowKeys = defnsToShowKeys.map(k => miscUtilities.findDefnUsages({ defnName: k, file })).flat();
         }
-        this.filteredCount = returnArr.length;
-        return returnArr.slice(0, this.numOfElem);
+        let getDefnsInMap = defnMap => defnsToShowKeys.map(k => defnMap[k]).filter(defn => defn !== undefined);
+        let defnsToShow = [getDefnsInMap(obj_map), getDefnsInMap(el_map),
+                           getDefnsInMap(immutable_map), getDefnsInMap(arr_map)];
+        defnsToShow.forEach(defns => defns.sort(sortByKey));
+        defnsToShow = defnsToShow.flat();
+        this.filteredCount = defnsToShow.length;
+        return defnsToShow.slice(0, this.numOfElem);
       }
     },
     computedFile() {
@@ -1068,11 +1074,15 @@ export default {
 }
 
 .tree-search {
-  grid-row: 1 / 2;
-  display: flex;
-  align-items: center;
-  padding-left: 15px;
+  padding-left: 0.5em;
+  padding-right: 1em;
   width: 559px;
+}
+
+.tree-search-options {
+  display: flex;
+  margin-top: -0.5em;
+  margin-bottom: 0.5em;
 }
 
 .file-tabs {

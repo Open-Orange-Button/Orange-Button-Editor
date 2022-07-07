@@ -828,3 +828,36 @@ export function defnDetails({ defnName, fileName, state }) {
   }
   return Object.entries(detailData).map(([attr, val]) => ({ Attributes: attr, Values: capitalizeFirstChar(val) }));
 }
+
+export function findDefnUsages({ defnName, file }) {
+  let usages = [];
+  let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
+  for (let [name, defn] of Object.entries(file)) {
+    if (name === defnName) { // defn uses itself
+      usages.push(name);
+    } else if (defn.allOf) { // taxonomy element or has inheritance
+      let usedForInheritance = defn.allOf
+        .filter(schema => schema.$ref && defnNameFromRef(schema.$ref) === defnName)
+        .length > 0;
+      let usedAsProperty = defn.allOf
+        .filter(schema => Object.keys(schema.properties || {}).includes(defnName))
+        .length > 0;
+      if (usedForInheritance || usedAsProperty) {
+        usages.push(name);
+      }
+    } else if (defn.properties) { // no inheritance
+      let usedAsProperty = Object.keys(defn.properties).includes(defnName);
+      if (usedAsProperty) {
+        usages.push(name);
+      }
+    } else if (defn.items) { // array of another schema definition
+      let items = defn.items;
+      if (items.$ref && defnNameFromRef(items.$ref) === defnName) {
+        usages.push(name);
+      }
+    } else { // primitive
+    }
+  }
+  return usages;
+}
+
