@@ -968,8 +968,8 @@ export default {
           return 0;
         }
 
-        let allDefnKeys = [Object.keys(obj_map), Object.keys(el_map),
-                           Object.keys(immutable_map), Object.keys(arr_map)].flat();
+        let allDefnMaps = [obj_map, el_map, immutable_map, arr_map];
+        let allDefnKeys = allDefnMaps.map(Object.keys).flat();
         let filterByWildcard = k => miscUtilities.wildcardSearch(k.toLowerCase(), this.treeSearchTerm.toLowerCase());
         let filterByViewObj = k => miscUtilities.viewObjFilter(k.toLowerCase(), this.$store.state.viewObjs);
         let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
@@ -986,8 +986,7 @@ export default {
           }
         }
         let getDefnsInMap = defnMap => [...defnsToShowKeys].map(k => defnMap[k]).filter(defn => defn !== undefined);
-        let defnsToShow = [getDefnsInMap(obj_map), getDefnsInMap(el_map),
-                           getDefnsInMap(immutable_map), getDefnsInMap(arr_map)];
+        let defnsToShow = allDefnMaps.map(getDefnsInMap);
         defnsToShow.forEach(defns => defns.sort(sortByKey));
         defnsToShow = defnsToShow.flat();
         this.filteredCount = defnsToShow.length;
