@@ -39,14 +39,30 @@
                       placeholder="Search element names... (wildcard: * )"
                     />
                     <div class="tree-search-options">
-                      <span style="padding-right: 0.3em">Search Options: </span>
-                      <b-form-checkbox
-                        v-model="searchDefinitionUsages"
-                      >Find Definition Usages</b-form-checkbox>
-                      (<b-form-checkbox
-                        v-model="searchDefinitionUsagesDirectOnly"
-                        :disabled="!searchDefinitionUsages"
-                      >Direct Only</b-form-checkbox>)
+                      <span>Search Options: </span>
+                      <span>
+                        <b-form-checkbox
+                          v-model="searchDefnUsages"
+                        >Find Definition Usages</b-form-checkbox>
+                      </span>
+                      <span>
+                        <v-icon name="info-circle" scale="1" id="search-defn-usages-tooltip" />
+                        <b-tooltip target="search-defn-usages-tooltip" triggers="focus hover" placement="right">
+                          <div v-html="('Finds all instances where a searched defintion is used.<br>' +
+                                        'Example: Search term <b>CapacityAC</b> finds <b>PVSystem</b> because <b>CapacityAC</b> is a field of <b>PVSystem</b>.<br>')" />
+                        </b-tooltip>
+                      </span>
+                      (<span>
+                        <b-form-checkbox
+                          v-model="searchDefnUsagesNested"
+                          :disabled="!searchDefnUsages"
+                        >Include Nested Usage</b-form-checkbox>
+                       </span>
+                       <v-icon name="info-circle" scale="1" style="margin-top: 0.28em" id="search-defn-usages-include-nested-tooltip" />
+                       <b-tooltip target="search-defn-usages-include-nested-tooltip" triggers="focus hover" placement="right">
+                         <div v-html="('Finds all instances where a searched defintion is used <b>indirectly</b>.<br>' +
+                                       'Example: Search term <b>CapacityAC</b> finds <b>Job</b> because <b>CapacityAC</b> is a field of <b>PVSystem</b> and <b>PVSystems</b> is a field of <b>Job</b>.')" />
+                       </b-tooltip>)
                     </div>
                   </div>
                 </div>
@@ -491,8 +507,8 @@ export default {
       GitHubTaxonomyUser: "https://github.com/Open-Orange-Button/Orange-Button-Taxonomy/blob/main/Master-OB-OpenAPI.json",
       GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
       latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}],
-      searchDefinitionUsages: false,
-      searchDefinitionUsagesDirectOnly: true
+      searchDefnUsages: false,
+      searchDefnUsagesNested: false
     };
   },
   mounted() {
@@ -974,18 +990,18 @@ export default {
         let filterByViewObj = k => miscUtilities.viewObjFilter(k.toLowerCase(), this.$store.state.viewObjs);
         let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
         let defnsToShowKeys = new Set([...allDefnKeys.filter(defnFilter)]);
-        if (this.searchDefinitionUsages) {
+        if (this.searchDefnUsages) {
           let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
           let usages = miscUtilities.findDefnUsages({ defnNameSet: defnsToShowKeys, file });
           usages.forEach(k => defnsToShowKeys.add(k));
-          if (!this.searchDefinitionUsagesDirectOnly) {
+          if (this.searchDefnUsagesNested) {
             while (usages.size > 0) {
               usages = miscUtilities.findDefnUsages({ defnNameSet: usages, file });
               usages.forEach(k => defnsToShowKeys.add(k));
             }
           }
         }
-        let getDefnsInMap = defnMap => [...defnsToShowKeys].map(k => defnMap[k]).filter(defn => defn !== undefined);
+        let getDefnsInMap = defnMap => [...defnsToShowKeys].map(k => defnMap[k]).filter(Boolean);
         let defnsToShow = allDefnMaps.map(getDefnsInMap);
         defnsToShow.forEach(defns => defns.sort(sortByKey));
         defnsToShow = defnsToShow.flat();
@@ -1094,6 +1110,10 @@ export default {
   display: flex;
   margin-top: -0.5em;
   margin-bottom: 0.5em;
+}
+
+div.tree-search-options > span {
+  padding-right: 0.15em;
 }
 
 .file-tabs {
