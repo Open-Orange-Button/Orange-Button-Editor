@@ -49,7 +49,7 @@
                         <v-icon name="info-circle" scale="1" id="search-defn-usages-tooltip" />
                         <b-tooltip target="search-defn-usages-tooltip" triggers="focus hover" placement="right">
                           <div v-html="('Finds all instances where a searched defintion is used.<br>' +
-                                        'Example: Search term <b>CapacityAC</b> finds <b>PVSystem</b> because <b>CapacityAC</b> is a field of <b>PVSystem</b>.<br>')" />
+                                        'Example: Search term <b>CapacityAC</b> finds <b>PVSystem</b> because <b>CapacityAC</b> is a field of <b>PVSystem</b>.')" />
                         </b-tooltip>
                       </span>
                       (<span>
@@ -859,24 +859,13 @@ export default {
       return this.$store.state.fileTabs;
     },
     sortedObjects() {
-      let obj_map = {}; 
+      let obj_map = {};
       let el_map = {};
       let arr_map = {};
       let arr_item = "";
       let immutable_map= {};
       let superClass_lst = [];
       let subClass_obj = {};
-      let immutable_OB = [
-        "Value",
-        "Unit",
-        "Decimals",
-        "Precision",
-        "TaxonomyElementString",
-        "TaxonomyElementNumber",
-        "TaxonomyElementInteger",
-        "TaxonomyElementBoolean",
-        "TaxonomyElementArray"
-      ];
       let nodeType = "";
       let defnRef = "";
       let refFileContext = "LOCAL";
