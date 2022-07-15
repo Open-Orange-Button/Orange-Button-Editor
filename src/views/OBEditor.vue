@@ -877,7 +877,6 @@ export default {
           // a schema definition can only have one set of its own properties (subClass_obj)
           let subClass_obj = defn.allOf.filter(schema => !schema.$ref)[0];
           let isTaxonomyElement = superClass_lst.some(s => s.includes('TaxonomyElement'));
-          let nodeType = isTaxonomyElement ? 'TaxonomyElement' : 'ObjWithInherit';
           let data = { defnName, subClass_obj, superClass_lst,
                        nodeType: isTaxonomyElement ? 'TaxonomyElement' : 'ObjWithInherit',
                        referenceFile, isLocal };
