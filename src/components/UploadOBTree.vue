@@ -151,7 +151,7 @@
           :parent_name="name"
           :parentOBPrimitiveValueType="OBPrimitiveValueType"
           :parent_trail="defnRefParentTrail(arr.key, parent_trail)"
-          type="object"
+          type="element"
           :ref="defnRef(arr.key, file.fileName)"
           :nameRef="defnRef(arr.key, file.fileName)"
           :file="file"

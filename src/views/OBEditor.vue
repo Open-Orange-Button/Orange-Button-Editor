@@ -43,12 +43,12 @@
                       <span>
                         <b-form-checkbox
                           v-model="searchDefnUsages"
-                        >Find Definition Usages</b-form-checkbox>
+                        >Find Concept Usages</b-form-checkbox>
                       </span>
                       <span>
                         <v-icon name="info-circle" scale="1" id="search-defn-usages-tooltip" />
                         <b-tooltip target="search-defn-usages-tooltip" triggers="focus hover" placement="right">
-                          <div v-html="('Finds all instances where a searched defintion is used.<br>' +
+                          <div v-html="('Finds all instances where a searched concept is used.<br>' +
                                         'Example: Search term <b>CapacityAC</b> finds <b>PVSystem</b> because <b>CapacityAC</b> is a field of <b>PVSystem</b>.')" />
                         </b-tooltip>
                       </span>
@@ -60,7 +60,7 @@
                        </span>
                        <v-icon name="info-circle" scale="1" style="margin-top: 0.28em" id="search-defn-usages-include-nested-tooltip" />
                        <b-tooltip target="search-defn-usages-include-nested-tooltip" triggers="focus hover" placement="right">
-                         <div v-html="('Finds all instances where a searched defintion is used <b>indirectly</b>.<br>' +
+                         <div v-html="('Finds all instances where a searched concept is used <b>indirectly</b>.<br>' +
                                        'Example: Search term <b>CapacityAC</b> finds <b>Job</b> because <b>CapacityAC</b> is a field of <b>PVSystem</b> and <b>PVSystems</b> is a field of <b>Job</b>.')" />
                        </b-tooltip>)
                     </div>
@@ -71,17 +71,17 @@
                     <!-- obj node -->
                     <UploadOBTree
                       v-if="arr.nodeType == 'Object'"
-                      :name="arr.key"
-                      :children="arr.childDef.properties"
+                      :name="arr.defnName"
+                      :children="arr.defn.properties"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
-                      :nodeDescription="arr.childDef.description"
+                      :nodeDescription="arr.defn.description"
                       :isObj="true"
                       parent_name="root"
-                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
+                      :parent_trail="defnRefParentTrailStart(arr.defnName, item.fileName)"
                       type="object"
-                      :ref="defnRef(arr.key, item.fileName)"
-                      :nameRef="defnRef(arr.key, item.fileName)"
+                      :ref="defnRef(arr.defnName, item.fileName)"
+                      :nameRef="defnRef(arr.defnName, item.fileName)"
                       :file="computedFile"
                       :isTaxonomyElement="false"
                       :referenceFile="arr.referenceFile"
@@ -93,17 +93,17 @@
 
                     <UploadOBTree
                       v-else-if="arr.nodeType == 'Array'"
-                      :name="arr.key"
-                      :children="getArrayItemAsChildren(arr.referenceFile, arr.arr_item, arr.key)"
+                      :name="arr.defnName"
+                      :children="getArrayItemAsChildren(arr.referenceFile, arr.arr_item, arr.defnName)"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
-                      :nodeDescription="arr.childDef.description"
+                      :nodeDescription="arr.defn.description"
                       :isObj="false"
                       parent_name="root"
-                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
+                      :parent_trail="defnRefParentTrailStart(arr.defnName, item.fileName)"
                       type="array"
-                      :ref="defnRef(arr.key, item.fileName)"
-                      :nameRef="defnRef(arr.key, item.fileName)"
+                      :ref="defnRef(arr.defnName, item.fileName)"
+                      :nameRef="defnRef(arr.defnName, item.fileName)"
                       :file="computedFile"
                       :isArray="true"
                       :arrayItemRef="arr.arr_item['$ref'] || arr.arr_item['type']"
@@ -119,16 +119,16 @@
                     <UploadOBTree
                       v-else-if="arr.nodeType == 'TaxonomyElement'"
                       :isObj="false"
-                      :name="arr.key"
-                      :children="subClassChildren(arr.referenceFile, arr.superClass_lst, arr.subClass_obj, arr.key)"
+                      :name="arr.defnName"
+                      :children="subClassChildren(arr.referenceFile, arr.superClass_lst, arr.subClass_obj, arr.defnName)"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
                       :nodeDescription="getNodeDescription(arr.subClass_obj)"
                       parent_name="root"
-                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
-                      type="object"
-                      :ref="defnRef(arr.key, item.fileName)"
-                      :nameRef="defnRef(arr.key, item.fileName)"
+                      :parent_trail="defnRefParentTrailStart(arr.defnName, item.fileName)"
+                      type="element"
+                      :ref="defnRef(arr.defnName, item.fileName)"
+                      :nameRef="defnRef(arr.defnName, item.fileName)"
                       :file="computedFile"
                       :isTaxonomyElement="true"
                       :referenceFile="arr.referenceFile"
@@ -141,17 +141,17 @@
                     <!-- allOf Obj -->
                     <UploadOBTree
                       v-else-if="arr.nodeType == 'ObjWithInherit'"
-                      :name="arr.key"
-                      :children="subClassChildren(arr.referenceFile, arr.superClass_lst, arr.subClass_obj, arr.key)"
+                      :name="arr.defnName"
+                      :children="subClassChildren(arr.referenceFile, arr.superClass_lst, arr.subClass_obj, arr.defnName)"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
                       :nodeDescription="getNodeDescription(arr.subClass_obj)"
                       :isObj="true"
                       parent_name="root"
-                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
+                      :parent_trail="defnRefParentTrailStart(arr.defnName, item.fileName)"
                       type="object"
-                      :ref="defnRef(arr.key, item.fileName)"
-                      :nameRef="defnRef(arr.key, item.fileName)"
+                      :ref="defnRef(arr.defnName, item.fileName)"
+                      :nameRef="defnRef(arr.defnName, item.fileName)"
                       :file="computedFile"
                       :isTaxonomyElement="false"
                       :referenceFile="arr.referenceFile"
@@ -163,15 +163,15 @@
                     <UploadOBTree
                       v-else
                       :isObj="false"
-                      :name="arr.key"
+                      :name="arr.defnName"
                       :depth="0"
                       :expandAllObjects="expandAllObjects"
-                      :nodeDescription="getNodeDescription(arr.childDef)"
+                      :nodeDescription="getNodeDescription(arr.defn)"
                       parent_name="root"
-                      :parent_trail="defnRefParentTrailStart(arr.key, item.fileName)"
+                      :parent_trail="defnRefParentTrailStart(arr.defnName, item.fileName)"
                       :type=arr.nodeType
-                      :ref="defnRef(arr.key, item.fileName)"
-                      :nameRef="defnRef(arr.key, item.fileName)"
+                      :ref="defnRef(arr.defnName, item.fileName)"
+                      :nameRef="defnRef(arr.defnName, item.fileName)"
                       :file="computedFile"
                       :isTaxonomyElement="false"
                       :referenceFile="arr.referenceFile"
@@ -862,141 +862,73 @@ export default {
       let obj_map = {};
       let el_map = {};
       let arr_map = {};
-      let arr_item = "";
-      let immutable_map= {};
-      let superClass_lst = [];
-      let subClass_obj = {};
-      let nodeType = "";
-      let defnRef = "";
-      let refFileContext = "LOCAL";
-      let isLocal = true;
-
-      let isTaxonomyElement = false;
-
-      //file parameter is the local file
-      //referenceFile is the reference file
+      let immutable_map = {};
       let referenceFile = this.$store.state.currentFile.file;
-
-      if (referenceFile) {
-        Object.keys(referenceFile).forEach(key => {
-          isTaxonomyElement = false;
-          isLocal = true;
-          superClass_lst = [];
-          referenceFile = this.$store.state.currentFile.file;
-          let isViewObj = this.isViewObj(key)
-
-          defnRef = miscUtilities.getDefnRef(
-            referenceFile,
-            key,
-            null,
-            this.$store.state.loadedFiles
-          );
-
-          refFileContext = miscUtilities.getRefFileContext(defnRef);
-
-          if (refFileContext != "LOCAL") {
-            referenceFile = this.$store.state.loadedFiles[refFileContext][
-              "file"
-            ];
-            isLocal = false;
-          }
-
-          let childDef = referenceFile[key];
-
-          if (childDef["type"] == "object") {
-            nodeType = "Object";
-            obj_map[key] = {
-              key,
-              childDef,
-              nodeType,
-              referenceFile,
-              isLocal,
-              isViewObj
-            };
-          } else if (childDef["allOf"]) {
-            for (let superclass of childDef["allOf"]) {
-              if (superclass["$ref"]) {
-                superClass_lst.push(superclass["$ref"]);
-              } else {
-                subClass_obj = superclass;
-              }
-            }
-            nodeType = "";
-
-            // check if TaxonomyElement, if it only has 1 ref and that ref includes TaxonomyElement in string
-            let isTaxonomyElement = superClass_lst.length === 1 && superClass_lst[0].includes("TaxonomyElement");
-
-            let data = {
-              key,
-              subClass_obj,
-              nodeType,
-              superClass_lst,
-              referenceFile,
-              isLocal
-            };
-
-            if (isTaxonomyElement) {
-              data.nodeType = "TaxonomyElement";
-              el_map[key] = data;
-            } else {
-              data.nodeType = "ObjWithInherit";
-              obj_map[key] = data;
-            }
-          } else if (childDef["type"] == "array" && childDef["items"]) {
-            nodeType = "Array";
-            arr_item = childDef["items"];
-            arr_map[key] = {
-              key,
-              childDef,
-              nodeType,
-              referenceFile,
-              isLocal,
-              arr_item
-            };
-          } else {
-            immutable_map[key] = {
-              key,
-              childDef,
-              nodeType: miscUtilities.capitalizeFirstChar(childDef["type"]),
-              referenceFile,
-              isLocal
-            };
-          }
-        });
-
-        let sortByKey = (a, b) => {
-          if (a.key < b.key) {
-            return -1;
-          } else if (a.key > b.key) {
-            return 1;
-          }
-          return 0;
-        }
-
-        let allDefnMaps = [obj_map, el_map, immutable_map, arr_map];
-        let allDefnKeys = allDefnMaps.map(Object.keys).flat();
-        let filterByWildcard = k => miscUtilities.wildcardSearch(k.toLowerCase(), this.treeSearchTerm.toLowerCase());
-        let filterByViewObj = k => miscUtilities.viewObjFilter(k.toLowerCase(), this.$store.state.viewObjs);
-        let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
-        let defnsToShowKeys = new Set([...allDefnKeys.filter(defnFilter)]);
-        if (this.searchDefnUsages) {
-          let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
-          let usages = miscUtilities.findDefnUsages({ defnNameSet: defnsToShowKeys, file });
-          usages.forEach(k => defnsToShowKeys.add(k));
-          if (this.searchDefnUsagesNested) {
-            while (usages.size > 0) {
-              usages = miscUtilities.findDefnUsages({ defnNameSet: usages, file });
-              usages.forEach(k => defnsToShowKeys.add(k));
-            }
-          }
-        }
-        let getDefnsInMap = defnMap => [...defnsToShowKeys].map(k => defnMap[k]).filter(Boolean);
-        let defnsToShow = allDefnMaps.map(getDefnsInMap);
-        defnsToShow.forEach(defns => defns.sort(sortByKey));
-        defnsToShow = defnsToShow.flat();
-        this.filteredCount = defnsToShow.length;
-        return defnsToShow.slice(0, this.numOfElem);
+      if (!referenceFile) {
+        return [];
       }
+      let defnNameFromRef = ref => ref.substring(ref.lastIndexOf('/') + 1);
+      for (let [defnName, defn] of Object.entries(referenceFile)) {
+        let defnRefFileContext = miscUtilities.getRefFileContext(defn.$ref || '#');
+        let isLocal = defnRefFileContext === 'LOCAL';
+        let defnFile = isLocal ? referenceFile : this.$store.state.loadedFiles[defnRefFileContext].file;
+        if (defn.allOf) { // taxonomy element or has inheritance
+          let superClass_lst = defn.allOf.filter(schema => schema.$ref).map(schema => schema.$ref);
+          // a schema definition can only have one set of its own properties (subClass_obj)
+          let subClass_obj = defn.allOf.filter(schema => !schema.$ref)[0];
+          let isTaxonomyElement = superClass_lst.some(s => s.includes('TaxonomyElement'));
+          let nodeType = isTaxonomyElement ? 'TaxonomyElement' : 'ObjWithInherit';
+          let data = { defnName, subClass_obj, superClass_lst,
+                       nodeType: isTaxonomyElement ? 'TaxonomyElement' : 'ObjWithInherit',
+                       referenceFile: defnFile, isLocal };
+          if (isTaxonomyElement) {
+            el_map[defnName] = data;
+          } else {
+            obj_map[defnName] = data;
+          }
+        } else if (defn.properties) { // no inheritance
+          let isViewObj = this.isViewObj(defnName);
+          obj_map[defnName] = { defnName, defn, isViewObj, nodeType: 'Object', referenceFile, isLocal };
+        } else if (defn.items) { // array of another schema definition or OpenAPI type
+          arr_map[defnName] = { defnName, defn, arr_item: defn.items, nodeType: 'Array', referenceFile, isLocal };
+        } else { // primitive
+          immutable_map[defnName] = { defnName, defn, nodeType: miscUtilities.capitalizeFirstChar(defn.type),
+                                 referenceFile, isLocal };
+        }
+      }
+
+      let sortByDefnName = (a, b) => {
+        if (a.defnName < b.defnName) {
+          return -1;
+        } else if (a.defnName > b.defnName) {
+          return 1;
+        }
+        return 0;
+      }
+
+      let allDefnMaps = [obj_map, el_map, immutable_map, arr_map];
+      let allDefnKeys = allDefnMaps.map(Object.keys).flat();
+      let filterByWildcard = k => miscUtilities.wildcardSearch(k.toLowerCase(), this.treeSearchTerm.toLowerCase());
+      let filterByViewObj = k => miscUtilities.viewObjFilter(k.toLowerCase(), this.$store.state.viewObjs);
+      let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
+      let defnsToShowKeys = new Set([...allDefnKeys.filter(defnFilter)]);
+      if (this.searchDefnUsages) {
+        let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
+        let usages = miscUtilities.findDefnUsages({ defnNameSet: defnsToShowKeys, file });
+        usages.forEach(k => defnsToShowKeys.add(k));
+        if (this.searchDefnUsagesNested) {
+          while (usages.size > 0) {
+            usages = miscUtilities.findDefnUsages({ defnNameSet: usages, file });
+            usages.forEach(k => defnsToShowKeys.add(k));
+          }
+        }
+      }
+      let getDefnsInMap = defnMap => [...defnsToShowKeys].map(k => defnMap[k]).filter(Boolean);
+      let defnsToShow = allDefnMaps.map(getDefnsInMap);
+      defnsToShow.forEach(defns => defns.sort(sortByDefnName));
+      defnsToShow = defnsToShow.flat();
+      this.filteredCount = defnsToShow.length;
+      return defnsToShow.slice(0, this.numOfElem);
     },
     computedFile() {
       return this.$store.state.currentFile;
