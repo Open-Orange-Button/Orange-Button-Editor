@@ -871,7 +871,7 @@ export default {
       for (let [defnName, defn] of Object.entries(referenceFile)) {
         let defnRefFileContext = miscUtilities.getRefFileContext(defn.$ref || '#');
         let isLocal = defnRefFileContext === 'LOCAL';
-        let defnFile = isLocal ? referenceFile : this.$store.state.loadedFiles[defnRefFileContext].file;
+        referenceFile = isLocal ? referenceFile : this.$store.state.loadedFiles[defnRefFileContext].file;
         if (defn.allOf) { // taxonomy element or has inheritance
           let superClass_lst = defn.allOf.filter(schema => schema.$ref).map(schema => schema.$ref);
           // a schema definition can only have one set of its own properties (subClass_obj)
@@ -880,7 +880,7 @@ export default {
           let nodeType = isTaxonomyElement ? 'TaxonomyElement' : 'ObjWithInherit';
           let data = { defnName, subClass_obj, superClass_lst,
                        nodeType: isTaxonomyElement ? 'TaxonomyElement' : 'ObjWithInherit',
-                       referenceFile: defnFile, isLocal };
+                       referenceFile, isLocal };
           if (isTaxonomyElement) {
             el_map[defnName] = data;
           } else {
@@ -893,7 +893,7 @@ export default {
           arr_map[defnName] = { defnName, defn, arr_item: defn.items, nodeType: 'Array', referenceFile, isLocal };
         } else { // primitive
           immutable_map[defnName] = { defnName, defn, nodeType: miscUtilities.capitalizeFirstChar(defn.type),
-                                 referenceFile, isLocal };
+                                      referenceFile, isLocal };
         }
       }
 
