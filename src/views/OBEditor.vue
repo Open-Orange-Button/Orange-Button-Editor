@@ -36,34 +36,40 @@
                     <b-form-input
                       class="tree-search-bar"
                       v-model="treeSearchTerm"
-                      placeholder="Search element names... (wildcard: * )"
+                      placeholder="Search concepts... (wildcard: * )"
                     />
-                    <div class="tree-search-options">
-                      <span>Search Options: </span>
-                      <span>
-                        <b-form-checkbox
-                          v-model="searchDefnUsages"
-                        >Find Concept Usages</b-form-checkbox>
-                      </span>
-                      <span>
-                        <v-icon name="info-circle" scale="1" id="search-defn-usages-tooltip" />
-                        <b-tooltip target="search-defn-usages-tooltip" triggers="focus hover" placement="right">
-                          <div v-html="('Finds all instances where a searched concept is used.<br>' +
-                                        'Example: Search term <b>CapacityAC</b> finds <b>PVSystem</b> because <b>CapacityAC</b> is a field of <b>PVSystem</b>.')" />
-                        </b-tooltip>
-                      </span>
-                      (<span>
-                        <b-form-checkbox
-                          v-model="searchDefnUsagesNested"
-                          :disabled="!searchDefnUsages"
-                        >Include Nested Usage</b-form-checkbox>
-                       </span>
-                       <v-icon name="info-circle" scale="1" style="margin-top: 0.28em" id="search-defn-usages-include-nested-tooltip" />
-                       <b-tooltip target="search-defn-usages-include-nested-tooltip" triggers="focus hover" placement="right">
-                         <div v-html="('Finds all instances where a searched concept is used <b>indirectly</b>.<br>' +
-                                       'Example: Search term <b>CapacityAC</b> finds <b>Job</b> because <b>CapacityAC</b> is a field of <b>PVSystem</b> and <b>PVSystems</b> is a field of <b>Job</b>.')" />
-                       </b-tooltip>)
-                    </div>
+                    <b-form-group label="Search Modes:" v-slot="{ ariaDescribedby }">
+                      <b-form-radio-group
+                        id="tree-search-modes"
+                        v-model="searchMode"
+                        :aria-describedby="ariaDescribedby"
+                        name="tree-search-modes"
+                      >
+                        <b-form-radio value="searchNames">
+                          Find By Name
+                           <v-icon name="info-circle" scale="1" id="tree-search-names" />
+                           <b-tooltip target="tree-search-names" triggers="focus hover" placement="right">
+                             Finds concepts whose name matches the search term.
+                           </b-tooltip>
+                        </b-form-radio>
+                        <b-form-radio value="searchFindDirect">
+                          Find Direct Usage
+                          <v-icon name="info-circle" scale="1" id="tree-search-find-direct" />
+                          <b-tooltip target="tree-search-find-direct" triggers="focus hover" placement="right">
+                            Finds concepts with a member whose name matches the search term.<br>
+                            Example: Search term "CapacityAC" finds <b>PVSystem</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b>.
+                          </b-tooltip>
+                        </b-form-radio>
+                        <b-form-radio value="searchFindAll">
+                          Find All Usage
+                           <v-icon name="info-circle" scale="1" id="tree-search-find-all" />
+                           <b-tooltip target="tree-search-find-all" triggers="focus hover" placement="right">
+                             Finds concepts with a possibly nested member whose name matches the search term.<br>
+                             Example: Search term "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
+                           </b-tooltip>
+                        </b-form-radio>
+                      </b-form-radio-group>
+                    </b-form-group>
                   </div>
                 </div>
                 <span :key="$store.state.refreshKey">
@@ -407,18 +413,18 @@
            >Save As</b-button>
         </div>
         <div v-else>
-            <b-button
-              id="copy-view-link-btn"
-              variant="primary"
-              @click="copyViewModeLinkToClipboard"
-              :disabled="$store.state.viewObjs.length === 0"
-              size="sm"
-            >Copy View Link</b-button>
-            <b-popover
-              target="copy-view-link-btn"
-              triggers="focus"
-              placement="left"
-            >Copied!</b-popover>
+          <b-button
+            id="copy-view-link-btn"
+            variant="primary"
+            @click="copyViewModeLinkToClipboard"
+            :disabled="$store.state.viewObjs.length === 0"
+            size="sm"
+          >Copy View Link</b-button>
+          <b-popover
+            target="copy-view-link-btn"
+            triggers="focus"
+            placement="left"
+          >Copied!</b-popover>
         </div>
       </div>
     </div>
@@ -518,6 +524,9 @@ export default {
       treeSearchTerm: "",
       GitHubTaxonomyUser: "https://github.com/Open-Orange-Button/Orange-Button-Taxonomy/blob/main/Master-OB-OpenAPI.json",
       GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
+      searchMode: "searchNames",
+      searchModes: [{ value: "searchNames", text: "Find By Name" }, { value: "searchFindDirect", text: "Find Direct Usage" },
+                    { value: "searchFindAll", text: "Find All Usage" }],
       latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}],
       searchDefnUsages: false,
       searchDefnUsagesNested: false
@@ -930,14 +939,17 @@ export default {
       let allDefnMaps = [obj_map, el_map, immutable_map, arr_map];
       let allDefnKeys = allDefnMaps.map(Object.keys).flat();
       let filterByWildcard = k => miscUtilities.wildcardSearch(k.toLowerCase(), this.treeSearchTerm.toLowerCase());
-      let filterByViewObj = k => miscUtilities.viewObjFilter(k.toLowerCase(), this.$store.state.viewObjs);
+      let viewObjsSet = new Set(this.$store.state.viewObjs);
+      let filterByViewObj = k => viewObjsSet.has(k);
       let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
       let defnsToShowKeys = new Set([...allDefnKeys.filter(defnFilter)]);
-      if (this.searchDefnUsages) {
+      let searchFindDirect = this.searchMode === 'searchFindDirect';
+      let searchFindAll = this.searchMode === 'searchFindAll';
+      if (searchFindDirect || searchFindAll) {
         let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
         let usages = miscUtilities.findDefnUsages({ defnNameSet: defnsToShowKeys, file });
         usages.forEach(k => defnsToShowKeys.add(k));
-        if (this.searchDefnUsagesNested) {
+        if (searchFindAll) {
           while (usages.size > 0) {
             usages = miscUtilities.findDefnUsages({ defnNameSet: usages, file });
             usages.forEach(k => defnsToShowKeys.add(k));
