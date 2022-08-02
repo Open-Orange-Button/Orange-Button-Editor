@@ -612,21 +612,7 @@ export function buildSampleJSON({ defnName, fileName, state }) {
   return sampleJSON;
 }
 
-// filters list for View Objects
-// params:
-// el: element name
-// arr: vuex ViewObjs arr
-export function viewObjFilter(el, arr) {
-  if (arr.includes(el)) {
-    return el
-  } else {
-    return null
-  }
-}
-
-
 // functions for managing cookies
-
 // create also used for updates
 export function createCookie(name,value,days) {
 	if (days) {
