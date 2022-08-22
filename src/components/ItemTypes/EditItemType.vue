@@ -53,107 +53,31 @@
 
         <div class="enum-or-unit-table-container" v-if="form.itemTypeType">
           <b-table
-            @row-selected="onRowSelected"
-            selectable
-            select-mode="single"
-            :fields="returnEnumOrUnitFields(form.itemTypeType)"
-            :items="enumOrUnitToAdd"
+            @row-clicked="onRowClicked"
+            :fields="getTableFields()"
+            :items="this.form.itemTypeEnumsOrUnits"
             id="edit-item-type-create-enums-or-units-table"
             class="item-type-table"
             ref="edit-item-type-create-enums-or-units-table-ref"
           >
+            <template #cell(actions)="row">
+              <b-button size="sm" @click="row.toggleDetails">{{ row.detailsShowing ? "Close" : "Edit" }}</b-button>
+              <b-button size="sm" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
+            </template>
+            <template #row-details="row">
+              <b-row v-for="[key, data] in Object.entries(enumOrUnitFields)">
+                <b-col>
+                  <label :for="`row-details-${data.label}`">{{ data.label }}:</label>
+                </b-col>
+                <b-col>
+                  <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" />
+                </b-col>
+              </b-row>
+            </template>
           </b-table>
         </div>
-
-        <div
-          id="add-enum-or-unit-container"
-          v-if="form.itemTypeType && !submitted"
-        >
-          <span v-if="form.itemTypeType == 'units'">
-            Add units:
-          </span>
-          <span v-else-if="form.itemTypeType == 'enums'">
-            Add enums:
-          </span>
-          <b-form @submit="addEnumOrUnit">
-            <div v-if="form.itemTypeType == 'units'">
-              <b-form-group
-                label="Unit ID:"
-                label-for="input-edit-item-type-add-unit-id"
-              >
-                <b-form-input
-                  id="input-edit-item-type-add-unit-id"
-                  v-model="enumOrUnitToAddForm.enumOrUnitID"
-                  required
-                ></b-form-input>
-              </b-form-group>
-              <b-form-group
-                label="Unit Label:"
-                label-for="input-edit-item-type-add-unit-label"
-              >
-                <b-form-input
-                  id="input-edit-item-type-add-unit-label"
-                  v-model="enumOrUnitToAddForm.enumOrUnitLabel"
-                  required
-                ></b-form-input>
-              </b-form-group>
-              <b-form-group
-                label="Unit Description:"
-                label-for="input-edit-item-type-add-unit-description"
-              >
-                <b-form-input
-                  id="input-edit-item-type-add-unit-description"
-                  v-model="enumOrUnitToAddForm.enumOrUnitDescription"
-                ></b-form-input>
-              </b-form-group>
-            </div>
-
-            <div v-if="form.itemTypeType == 'enums'">
-              <b-form-group
-                label="Enum ID:"
-                label-for="input-edit-item-type-add-enum-ID"
-              >
-                <b-form-input
-                  id="input-edit-item-type-add-enum-ID"
-                  v-model="enumOrUnitToAddForm.enumOrUnitID"
-                  required
-                ></b-form-input>
-              </b-form-group>
-              <b-form-group
-                label="Enum Label:"
-                label-for="input-edit-item-type-add-enum-label"
-              >
-                <b-form-input
-                  id="input-edit-item-type-add-enum-label"
-                  v-model="enumOrUnitToAddForm.enumOrUnitLabel"
-                  required
-                ></b-form-input>
-              </b-form-group>
-              <b-form-group
-                label="Enum Description:"
-                label-for="input-edit-item-type-add-enum-description"
-              >
-                <b-form-input
-                  id="input-edit-item-type-add-enum-description"
-                  v-model="enumOrUnitToAddForm.enumOrUnitDescription"
-                ></b-form-input>
-              </b-form-group>
-            </div>
-
-            <div class="center-items-container" v-if="form.itemTypeType">
-              <b-button
-                type="submit"
-                @click="addEnumOrUnit"
-                size="sm"
-                variant="primary"
-                >Add</b-button
-              >
-              <b-button size="sm" @click="removeEnumOrUnit" variant="danger"
-                >Remove</b-button
-              >
-            </div>
-            Select unit or enum in table and click Remove to remove.
-          </b-form>
+        <div class="center-items-container">
+          <b-button size="sm" @click="addEnumOrUnit" variant="primary">Add New</b-button>
         </div>
 
         <div class="line-break"></div>
@@ -200,24 +124,11 @@ export default {
         { text: "Units", value: "units" },
         { text: "Enums", value: "enums" }
       ],
-      unitFields: [
-        { key: "enumOrUnitID", label: "Unit ID", thStyle: { width: "150px" } },
-        {
-          key: "enumOrUnitLabel",
-          label: "Unit Label",
-          thStyle: { width: "150px" }
-        },
-        { key: "enumOrUnitDescription", label: "Unit Description" }
-      ],
-      enumFields: [
-        { key: "enumOrUnitID", label: "Enum ID", thStyle: { width: "150px" } },
-        {
-          key: "enumOrUnitLabel",
-          label: "Enum Label",
-          thStyle: { width: "150px" }
-        },
-        { key: "enumOrUnitDescription", label: "Enum Description" }
-      ],
+      enumOrUnitFields: {
+        enumOrUnitID: { label: 'ID', editable: false },
+        enumOrUnitLabel: { label: 'Label', editable: true },
+        enumOrUnitDescription: { label: 'Description', editable: true }
+      },
       enumOrUnitToAddForm: {
         enumOrUnitID: "",
         enumOrUnitLabel: "",
@@ -255,49 +166,33 @@ export default {
     exitView() {
       this.$store.commit("showNoItemTypesViews");
     },
-    returnEnumOrUnitFields(itemTypeType) {
-      if (itemTypeType == "units") {
-        return this.unitFields;
-      } else if (itemTypeType == "enums") {
-        return this.enumFields;
-      }
+    getTableFields() {
+      let tableFields = Object.entries(this.enumOrUnitFields).reduce((arr, [name, data]) => {
+        arr.push({ key: name, label: data.label });
+        return arr;
+      }, []);
+      tableFields.push({ key: "actions", label: "Actions" });
+      return tableFields;
+      // return [
+      //   { key: "enumOrUnitID", label: `${type} ID`, thStyle: { width: "150px" } },
+      //   { key: "enumOrUnitLabel", label: `${type} Label`, thStyle: { width: "150px" } },
+      //   { key: "enumOrUnitDescription", label: `${type} Description` },
+      //   { key: "actions", label: "Actions" }
+      // ];
     },
-    onRowSelected(items) {
-      this.selectedEnumOrUnit = items;
+    onRowClicked(rowItem) {
+      this.selectedEnumOrUnit = rowItem;
     },
     addEnumOrUnit() {
-      if (
-        this.enumOrUnitToAddForm.enumOrUnitID &&
-        this.enumOrUnitToAddForm.enumOrUnitLabel
-      ) {
-        event.preventDefault();
-        let tmp_enumOrUnitToAddObj = {
-          enumOrUnitID: this.enumOrUnitToAddForm.enumOrUnitID,
-          enumOrUnitLabel: this.enumOrUnitToAddForm.enumOrUnitLabel,
-          enumOrUnitDescription: this.enumOrUnitToAddForm.enumOrUnitDescription
-        };
-        this.form.itemTypeEnumsOrUnits.push(tmp_enumOrUnitToAddObj);
-
-        this.enumOrUnitToAddForm.enumOrUnitID = "";
-        this.enumOrUnitToAddForm.enumOrUnitLabel = "";
-        this.enumOrUnitToAddForm.enumOrUnitDescription = "";
-      }
+      let newEnumOrUnit = {
+        enumOrUnitID: "",
+        enumOrUnitLabel: "",
+        enumOrUnitDescription: ""
+      };
+      this.form.itemTypeEnumsOrUnits.push(newEnumOrUnit);
     },
-    removeEnumOrUnit() {
-      if (this.selectedEnumOrUnit.length) {
-        let counter = 0;
-        for (let i = 0; i < this.form.itemTypeEnumsOrUnits.length; i++) {
-          if (
-            this.selectedEnumOrUnit[0]["enumOrUnitID"] ==
-            this.form.itemTypeEnumsOrUnits[i]["enumOrUnitID"]
-          ) {
-            break;
-          } else {
-            counter++;
-          }
-        }
-        this.form.itemTypeEnumsOrUnits.splice(counter, 1);
-      }
+    removeEnumOrUnit(rowItem) {
+      this.form.itemTypeEnumsOrUnits = this.form.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
     },
     populateForm() {
       let currentItemTypeObj = this.allItemTypes[this.itemTypeToEdit];
@@ -332,3 +227,4 @@ export default {
   word-break: break-word;
 }
 </style>
+
