@@ -845,3 +845,17 @@ export function findDefnUsages({ defnNameSet, file }) {
   return usages;
 }
 
+export function getAllTaxonomyElements(file) {
+  let allTaxonomyElements = {};
+  for (let [name, defn] of Object.entries(file)) {
+    if (defn.allOf) {
+      let inherited = defn.allOf.filter(def => def.$ref)[0];
+      let isTaxonomyElement = inherited.$ref.includes('TaxonomyElement');
+      if (isTaxonomyElement) {
+        allTaxonomyElemnts[name] = defn;
+      }
+    }
+  }
+  return allTaxonomyElements;
+}
+

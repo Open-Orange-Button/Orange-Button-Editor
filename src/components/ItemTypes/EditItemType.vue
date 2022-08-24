@@ -13,16 +13,22 @@
       <b-table
         sticky-header
         no-border-collapse
-        selectable
+        :selectable="!validationMsg"
         :filter="itemTypeSearchFilter"
         select-mode="single"
         @row-clicked="setEnumUnitEditForm"
-        :items="allItemTypes.map(({ itemTypeName, defn }) => ({ item_type: itemTypeName, description: defn.itemTypeDescription }))">
+        :items="allItemTypes
+                  .map(({ itemTypeName, defn }) => ({ item_type: itemTypeName, description: defn.itemTypeDescription, actions: '' }))
+                  .sort(({ item_type: a }, { item_type: b }) => a.localeCompare(b))">
+      <template #cell(actions)="row">
+        <b-button size="sm" :disabled="submitted" @click="removeItemType(row.item)" variant="danger">Remove</b-button>
+      </template>
       </b-table>
       <div class="center-items-container">
         <b-button size="sm"  :disabled="submitted" @click="addItemType" variant="primary">Add New Item Type</b-button>
       </div>
     </b-form-group>
+    <h6 v-if="validationMsg" style="color: red">{{ validationMsg }}</h6>
     <div class="edit-item-types-container" v-if="form">
       <b-form @submit="onSubmit">
         <b-form-group
@@ -33,6 +39,7 @@
             id="input-edit-item-type-item-type-description"
             v-model="form.itemTypeName"
             :disabled="submitted"
+            :state="Boolean(form.itemTypeName)"
           ></b-form-input>
         </b-form-group>
 
@@ -112,6 +119,7 @@
 </template>
 
 <script>
+import getAllTaxonomyElements from '../../utils/miscUtilties';
 export default {
   created() {
     let state = this.$store.state;
@@ -122,6 +130,7 @@ export default {
     return {
       itemTypeToEdit: "",
       allItemTypes: [],
+      usedItemTypes: new Set(),
       form: null,
       itemTypeTypes: [
         { text: "", value: "" },
@@ -139,14 +148,27 @@ export default {
         enumOrUnitDescription: ""
       },
       submitted: false,
-      itemTypeSearchFilter: ""
+      itemTypeSearchFilter: "",
+      validItemTypes: false,
+      validationMsg: ""
     };
   },
   methods: {
     onSubmit(event) {
       event.preventDefault();
       this.submitted = true;
+      this.validationMsg = this.validateItemTypes();
+      if (this.validationMsg) {
+        return;
+      }
       this.$store.commit("setItemTypes", this.allItemTypes);
+    },
+    validateItemTypes() {
+      // all item type names are nonempty
+      if (!this.allItemTypes.every(i => i.itemTypeName)) {
+        return "All item types must have nonempty names.";
+      }
+      return "";
     },
     exitView() {
       this.$store.commit("showNoItemTypesViews");
@@ -157,12 +179,15 @@ export default {
       return tableFields;
     },
     addItemType() {
-      let newItemType = { newItemType: "", defn: this.populateForm({ description: "" }) };
+      let newItemType = { itemTypeName: "", defn: this.populateForm({ description: "" }) };
       this.allItemTypes.push(newItemType);
       this.form = newItemType;
     },
     addEnumOrUnit() {
       this.form.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
+    },
+    removeItemType(rowItem) {
+      this.allItemTypes = this.allItemTypes.filter(i => i.itemTypeName !== rowItem.item_type);
     },
     removeEnumOrUnit(rowItem) {
       this.form.itemTypeEnumsOrUnits = this.form.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
@@ -187,6 +212,10 @@ export default {
       return form;
     },
     setEnumUnitEditForm(rowItem) {
+      this.validationMsg = this.validateItemTypes();
+      if (this.validationMsg) {
+        return;
+      }
       this.form = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
     }
   }
