@@ -522,47 +522,20 @@ export default new Vuex.Store({
 
       Vue.set(state.currentFile.file, payload.definitionName, defn_attr);
     },
-    createItemType(state, payload) {
-      let finalItemTypeObj = {}
-      let finalEnumsOrUnits = {}
-      finalItemTypeObj['description'] = payload.itemTypeDescription
+    // sets an item type in the definiton file under obj 'x-ob-item-type'
+    setItemTypeDefn(state, payload) {
+      let finalEdittedItemTypeObj = { description: payload.itemTypeDescription };
+      let finalEnumsOrUnits = {};
 
-      payload.itemTypeEnumsOrUnits.forEach( enumOrUnitObj => {
-        finalEnumsOrUnits[enumOrUnitObj['enumOrUnitID']] = {
-          "label": enumOrUnitObj['enumOrUnitLabel'],
-          "description": enumOrUnitObj['enumOrUnitDescription']
-        }
-      })
+      for (let { enumOrUnitID: id, enumOrUnitID: label, enumOrUnitDescription: description } of payload.itemTypeEnumsOrUnits) {
+        finalEnumsOrUnits[id] = { label, description }
+      }
 
-      if (payload.itemTypeType == 'units') {
-        finalItemTypeObj['units'] = finalEnumsOrUnits
-      } else if (payload.itemTypeType == 'enums') {
-        finalItemTypeObj['enums'] = finalEnumsOrUnits
+      if (payload.itemTypeType) {
+        finalEdittedItemTypeObj[payload.itemTypeType] = finalEnumsOrUnits;
       } // else no units or enums defined
 
-      Vue.set(state.currentFile.item_types, payload.itemTypeName, finalItemTypeObj)
-
-    },
-    // edits the item type in the definiton file under obj 'x-ob-item-type'
-    editItemTypeDefn(state, payload) {
-      let finalEdittedItemTypeObj = {}
-      let finalEnumsOrUnits = {}
-
-      finalEdittedItemTypeObj['description'] = payload.itemTypeDescription
-      payload.itemTypeEnumsOrUnits.forEach( enumOrUnitObj => {
-        finalEnumsOrUnits[enumOrUnitObj['enumOrUnitID']] = {
-          "label": enumOrUnitObj['enumOrUnitLabel'],
-          "description": enumOrUnitObj['enumOrUnitDescription']
-        }
-      })
-
-      if (payload.itemTypeType == 'units') {
-        finalEdittedItemTypeObj['units'] = finalEnumsOrUnits
-      } else if (payload.itemTypeType == 'enums') {
-        finalEdittedItemTypeObj['enums'] = finalEnumsOrUnits
-      } // else no units or enums defined
       Vue.set(state.currentFile.item_types, payload.itemTypeName, finalEdittedItemTypeObj)
-
     },
     createItemTypeGroup(state, payload) {
       let finalItemTypeGroupObj = {}

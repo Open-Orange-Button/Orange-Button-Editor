@@ -200,13 +200,13 @@ export default {
         onSubmit(event) {
             event.preventDefault()
             let payload = {
-                "itemTypeName" : this.form.itemTypeName,
-                "itemTypeType": this.form.itemTypeType,
-                "itemTypeDescription": this.form.itemTypeDescription,
-                "itemTypeEnumsOrUnits": this.enumsOrUnitsToAdd
+                itemTypeName : this.form.itemTypeName,
+                itemTypeType: this.form.itemTypeType,
+                itemTypeDescription: this.form.itemTypeDescription,
+                itemTypeEnumsOrUnits: this.enumsOrUnitsToAdd
             }
             this.submitted = true
-            this.$store.commit("createItemType", payload);
+            this.$store.commit("setItemTypeDefn", payload);
         },
         onReset(event) {
             this.form.itemTypeName = ''

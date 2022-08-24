@@ -12,7 +12,7 @@
       ></b-form-select>
     </b-form-group>
     <div class="edit-item-types-container" v-if="itemTypeToEdit">
-      <b-form @submit="onSubmit" @reset="onReset">
+      <b-form @submit="onSubmit">
         <b-form-group
           label="Item Type Name:"
           label-for="input-edit-item-type-item-type-name"
@@ -53,7 +53,6 @@
 
         <div class="enum-or-unit-table-container" v-if="form.itemTypeType">
           <b-table
-            @row-clicked="onRowClicked"
             :fields="getTableFields()"
             :items="this.form.itemTypeEnumsOrUnits"
             id="edit-item-type-create-enums-or-units-table"
@@ -61,8 +60,8 @@
             ref="edit-item-type-create-enums-or-units-table-ref"
           >
             <template #cell(actions)="row">
-              <b-button size="sm" @click="row.toggleDetails">{{ row.detailsShowing ? "Close" : "Edit" }}</b-button>
-              <b-button size="sm" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
+              <b-button size="sm" :disabled="submitted" @click="row.toggleDetails">{{ row.detailsShowing ? "Close" : "Edit" }}</b-button>
+              <b-button size="sm" :disabled="submitted" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
             </template>
             <template #row-details="row">
               <b-row v-for="[key, data] in Object.entries(enumOrUnitFields)">
@@ -75,16 +74,15 @@
               </b-row>
             </template>
           </b-table>
-        </div>
-        <div class="center-items-container">
-          <b-button size="sm" @click="addEnumOrUnit" variant="primary">Add New</b-button>
+          <div class="center-items-container">
+            <b-button size="sm"  :disabled="submitted" click="addEnumOrUnit" variant="primary">Add New</b-button>
+          </div>
         </div>
 
         <div class="line-break"></div>
 
         <div class="center-items-container">
           <b-button
-            size="sm"
             type="submit"
             variant="primary"
             :disabled="submitted"
@@ -92,7 +90,6 @@
             <span v-if="!submitted">Submit</span>
             <span v-else>Submitted!</span>
           </b-button>
-          <b-button size="sm" type="reset" variant="danger">Reset</b-button>
         </div>
       </b-form>
     </div>
@@ -112,7 +109,7 @@ export default {
   data() {
     return {
       itemTypeToEdit: "",
-      allItemTypes: null,
+      allItemTypes: [],
       form: {
         itemTypeName: "",
         itemTypeType: "",
@@ -134,7 +131,6 @@ export default {
         enumOrUnitLabel: "",
         enumOrUnitDescription: ""
       },
-      selectedEnumOrUnit: [],
       submitted: false
     };
   },
@@ -148,53 +144,24 @@ export default {
         itemTypeEnumsOrUnits: this.form.itemTypeEnumsOrUnits
       };
       this.submitted = true;
-      this.$store.commit("editItemTypeDefn", payload);
-    },
-    onReset(event) {
-      (this.form.itemTypeName = ""), (this.form.itemTypeType = "");
-      this.form.itemTypeDescription = "";
-      this.form.itemTypeEnumsOrUnits = [];
-
-      this.enumOrUnitToAddForm.enumOrUnitID = "";
-      this.enumOrUnitToAddForm.enumOrUnitLabel = "";
-      this.enumOrUnitToAddForm.enumOrUnitDescription = "";
-
-      this.itemTypeToEdit = "";
-
-      this.submitted = false;
+      this.$store.commit("setItemTypeDefn", payload);
     },
     exitView() {
       this.$store.commit("showNoItemTypesViews");
     },
     getTableFields() {
-      let tableFields = Object.entries(this.enumOrUnitFields).reduce((arr, [name, data]) => {
-        arr.push({ key: name, label: data.label });
-        return arr;
-      }, []);
+      let tableFields = Object.entries(this.enumOrUnitFields).map(([key, { label }]) => ({ key, label }));
       tableFields.push({ key: "actions", label: "Actions" });
       return tableFields;
-      // return [
-      //   { key: "enumOrUnitID", label: `${type} ID`, thStyle: { width: "150px" } },
-      //   { key: "enumOrUnitLabel", label: `${type} Label`, thStyle: { width: "150px" } },
-      //   { key: "enumOrUnitDescription", label: `${type} Description` },
-      //   { key: "actions", label: "Actions" }
-      // ];
-    },
-    onRowClicked(rowItem) {
-      this.selectedEnumOrUnit = rowItem;
     },
     addEnumOrUnit() {
-      let newEnumOrUnit = {
-        enumOrUnitID: "",
-        enumOrUnitLabel: "",
-        enumOrUnitDescription: ""
-      };
-      this.form.itemTypeEnumsOrUnits.push(newEnumOrUnit);
+      this.form.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
     },
     removeEnumOrUnit(rowItem) {
       this.form.itemTypeEnumsOrUnits = this.form.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
     },
     populateForm() {
+      this.submitted = false;
       let currentItemTypeObj = this.allItemTypes[this.itemTypeToEdit];
       this.form.itemTypeName = this.itemTypeToEdit;
       this.form.itemTypeDescription = currentItemTypeObj.description;
