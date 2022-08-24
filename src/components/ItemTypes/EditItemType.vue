@@ -1,27 +1,38 @@
 <template>
   <div class="edit-item-types-container">
     <b-form-group
-      label="Choose Item Type to Edit:"
-      label-for="input-edit-item-type-select-item-type"
+      label="Select an Item Type"
+      label-for="input-item-type-search"
     >
-      <b-form-select
-        id="input-edit-item-type-select-item-type"
-        v-model="itemTypeToEdit"
-        :options="Object.keys(allItemTypes).sort()"
-        @change="populateForm"
-      ></b-form-select>
+      <b-form-input
+        id="input-item-type-search"
+        v-model="itemTypeSearchFilter"
+        type="search"
+        placeholder="Search item types..."
+      />
+      <b-table
+        sticky-header
+        no-border-collapse
+        selectable
+        :filter="itemTypeSearchFilter"
+        select-mode="single"
+        @row-clicked="setEnumUnitEditForm"
+        :items="allItemTypes.map(({ itemTypeName, defn }) => ({ item_type: itemTypeName, description: defn.itemTypeDescription }))">
+      </b-table>
+      <div class="center-items-container">
+        <b-button size="sm"  :disabled="submitted" @click="addItemType" variant="primary">Add New Item Type</b-button>
+      </div>
     </b-form-group>
-    <div class="edit-item-types-container" v-if="itemTypeToEdit">
+    <div class="edit-item-types-container" v-if="form">
       <b-form @submit="onSubmit">
         <b-form-group
           label="Item Type Name:"
-          label-for="input-edit-item-type-item-type-name"
+          label-for="input-edit-item-type-item-type-description"
         >
           <b-form-input
-            id="input-edit-item-type-item-type-name"
+            id="input-edit-item-type-item-type-description"
             v-model="form.itemTypeName"
-            required
-            disabled
+            :disabled="submitted"
           ></b-form-input>
         </b-form-group>
 
@@ -31,7 +42,7 @@
         >
           <b-form-textarea
             id="input-edit-item-type-item-type-description"
-            v-model="form.itemTypeDescription"
+            v-model="form.defn.itemTypeDescription"
             rows="3"
             max-rows="6"
             :disabled="submitted"
@@ -45,38 +56,38 @@
         >
           <b-form-select
             id="input-item-type-type"
-            v-model="form.itemTypeType"
+            v-model="form.defn.itemTypeType"
             :options="itemTypeTypes"
             :disabled="submitted"
           ></b-form-select>
         </b-form-group>
 
-        <div class="enum-or-unit-table-container" v-if="form.itemTypeType">
-          <b-table
-            :fields="getTableFields()"
-            :items="this.form.itemTypeEnumsOrUnits"
-            id="edit-item-type-create-enums-or-units-table"
-            class="item-type-table"
-            ref="edit-item-type-create-enums-or-units-table-ref"
-          >
-            <template #cell(actions)="row">
-              <b-button size="sm" :disabled="submitted" @click="row.toggleDetails">{{ row.detailsShowing ? "Close" : "Edit" }}</b-button>
-              <b-button size="sm" :disabled="submitted" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
-            </template>
-            <template #row-details="row">
-              <b-row v-for="[key, data] in Object.entries(enumOrUnitFields)">
-                <b-col>
-                  <label :for="`row-details-${data.label}`">{{ data.label }}:</label>
-                </b-col>
-                <b-col>
-                  <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" />
-                </b-col>
-              </b-row>
-            </template>
-          </b-table>
-          <div class="center-items-container">
-            <b-button size="sm"  :disabled="submitted" click="addEnumOrUnit" variant="primary">Add New</b-button>
-          </div>
+        <b-table
+          sticky-header
+          no-border-collapse
+          :fields="getTableFields()"
+          :items="form.defn.itemTypeEnumsOrUnits"
+          id="edit-item-type-create-enums-or-units-table"
+          class="item-type-table"
+          ref="edit-item-type-create-enums-or-units-table-ref"
+        >
+          <template #cell(actions)="row">
+            <b-button size="sm" :disabled="submitted" @click="row.toggleDetails">{{ row.detailsShowing ? "Close" : "Edit" }}</b-button>
+            <b-button size="sm" :disabled="submitted" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
+          </template>
+          <template #row-details="row">
+            <b-row v-for="[key, data] in Object.entries(enumOrUnitFields)">
+              <b-col>
+                <label :for="`row-details-${data.label}`">{{ data.label }}:</label>
+              </b-col>
+              <b-col>
+                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" />
+              </b-col>
+            </b-row>
+          </template>
+        </b-table>
+        <div class="center-items-container">
+          <b-button size="sm"  :disabled="submitted" @click="addEnumOrUnit" variant="primary">Add New</b-button>
         </div>
 
         <div class="line-break"></div>
@@ -104,26 +115,22 @@
 export default {
   created() {
     let state = this.$store.state;
-    this.allItemTypes = state.loadedFiles[state.selectedFileName].item_types;
+    this.allItemTypes = Object.entries(state.loadedFiles[state.selectedFileName].item_types)
+      .map(([itemTypeName, defn]) => ({ itemTypeName, defn: this.populateForm(defn) }));
   },
   data() {
     return {
       itemTypeToEdit: "",
       allItemTypes: [],
-      form: {
-        itemTypeName: "",
-        itemTypeType: "",
-        itemTypeDescription: "",
-        itemTypeEnumsOrUnits: []
-      },
+      form: null,
       itemTypeTypes: [
         { text: "", value: "" },
         { text: "Units", value: "units" },
         { text: "Enums", value: "enums" }
       ],
       enumOrUnitFields: {
-        enumOrUnitID: { label: 'ID', editable: false },
-        enumOrUnitLabel: { label: 'Label', editable: true },
+        enumOrUnitID: { label: 'ID', editable: false, thStyle: { width: "150px" } },
+        enumOrUnitLabel: { label: 'Label', editable: true, thStyle: { width: "150px" } },
         enumOrUnitDescription: { label: 'Description', editable: true }
       },
       enumOrUnitToAddForm: {
@@ -131,28 +138,28 @@ export default {
         enumOrUnitLabel: "",
         enumOrUnitDescription: ""
       },
-      submitted: false
+      submitted: false,
+      itemTypeSearchFilter: ""
     };
   },
   methods: {
     onSubmit(event) {
       event.preventDefault();
-      let payload = {
-        itemTypeName: this.form.itemTypeName,
-        itemTypeType: this.form.itemTypeType,
-        itemTypeDescription: this.form.itemTypeDescription,
-        itemTypeEnumsOrUnits: this.form.itemTypeEnumsOrUnits
-      };
       this.submitted = true;
-      this.$store.commit("setItemTypeDefn", payload);
+      this.$store.commit("setItemTypes", this.allItemTypes);
     },
     exitView() {
       this.$store.commit("showNoItemTypesViews");
     },
     getTableFields() {
-      let tableFields = Object.entries(this.enumOrUnitFields).map(([key, { label }]) => ({ key, label }));
-      tableFields.push({ key: "actions", label: "Actions" });
+      let tableFields = Object.entries(this.enumOrUnitFields).map(([key, { label, thStyle }]) => ({ key, label, thStyle }));
+      tableFields.push({ key: "actions", label: "Actions", thStyle: { width: "150px" } });
       return tableFields;
+    },
+    addItemType() {
+      let newItemType = { newItemType: "", defn: this.populateForm({ description: "" }) };
+      this.allItemTypes.push(newItemType);
+      this.form = newItemType;
     },
     addEnumOrUnit() {
       this.form.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
@@ -160,30 +167,27 @@ export default {
     removeEnumOrUnit(rowItem) {
       this.form.itemTypeEnumsOrUnits = this.form.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
     },
-    populateForm() {
-      this.submitted = false;
-      let currentItemTypeObj = this.allItemTypes[this.itemTypeToEdit];
-      this.form.itemTypeName = this.itemTypeToEdit;
-      this.form.itemTypeDescription = currentItemTypeObj.description;
+    populateForm(itemTypeDefn) {
+      let form = { itemTypeDescription: itemTypeDefn.description }
+
       let itemTypeType = '';
-      if (currentItemTypeObj.enums) {
+      if (itemTypeDefn.enums) {
         itemTypeType = 'enums';
-      } else if (currentItemTypeObj.units) {
+      } else if (itemTypeDefn.units) {
         itemTypeType = 'units';
       }
+      form.itemTypeType = itemTypeType;
 
-      this.form.itemTypeType = itemTypeType;
-
-      if (!itemTypeType) {
-        return;
-      }
-
-      this.form.itemTypeEnumsOrUnits = Object.keys(currentItemTypeObj[itemTypeType])
-        .map(k => ({
-          enumOrUnitID: k,
-          enumOrUnitLabel: currentItemTypeObj[itemTypeType][k].label,
-          enumOrUnitDescription: currentItemTypeObj[itemTypeType][k].description
+      form.itemTypeEnumsOrUnits = Object.entries(itemTypeDefn[itemTypeType] || [])
+        .map(([id, { label, description }]) => ({
+          enumOrUnitID: id,
+          enumOrUnitLabel: label,
+          enumOrUnitDescription: description
         }));
+      return form;
+    },
+    setEnumUnitEditForm(rowItem) {
+      this.form = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
     }
   }
 };

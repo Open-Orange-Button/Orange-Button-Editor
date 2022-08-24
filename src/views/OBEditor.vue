@@ -599,7 +599,10 @@ export default {
       let fileToExport = null;
       let exportModalHeader = "";
       if (fileToExportType === "taxonomy") {
-        fileToExport = this.$store.state.currentFile.fullFileForExport;
+        let currentFile = this.$store.state.currentFile;
+        fileToExport = currentFile.fullFileForExport;
+        fileToExport["x-ob-item-types"] = currentFile.item_types;
+        fileToExport["x-ob-item-type-groups"] = currentFile.item_type_groups;
         exportModalHeader = "Save as...";
       } else if (fileToExportType === "sampleJSON") {
         fileToExport = miscUtilities.getSampleJSON({ fileName: this.$store.state.currentFile.fileName, state: this.$store.state });
