@@ -119,7 +119,7 @@
 </template>
 
 <script>
-import getAllTaxonomyElements from '../../utils/miscUtilties';
+import getAllTaxonomyElements from '../../utils/miscUtilities';
 export default {
   created() {
     let state = this.$store.state;
@@ -165,8 +165,11 @@ export default {
     },
     validateItemTypes() {
       // all item type names are nonempty
-      if (!this.allItemTypes.every(i => i.itemTypeName)) {
+      if (this.itemTypeNameSet.has('')) {
         return "All item types must have nonempty names.";
+      }
+      if (this.allItemTypes.length !== this.itemTypeNameSet.size) {
+        return "All item types must have unique names.";
       }
       return "";
     },
@@ -193,7 +196,7 @@ export default {
       this.form.itemTypeEnumsOrUnits = this.form.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
     },
     populateForm(itemTypeDefn) {
-      let form = { itemTypeDescription: itemTypeDefn.description }
+      let form = { itemTypeDescription: itemTypeDefn.description };
 
       let itemTypeType = '';
       if (itemTypeDefn.enums) {
@@ -217,6 +220,11 @@ export default {
         return;
       }
       this.form = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
+    }
+  },
+  computed: {
+    itemTypeNameSet() {
+      return new Set(this.allItemTypes.map(i => i.itemTypeName));
     }
   }
 };
