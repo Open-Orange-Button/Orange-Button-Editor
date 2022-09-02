@@ -534,7 +534,6 @@ export default new Vuex.Store({
       if (payload.itemTypeType) {
         finalEdittedItemTypeObj[payload.itemTypeType] = finalEnumsOrUnits;
       } // else no units or enums defined
-      console.log(state.currentFile.item_types);
 
       Vue.set(state.currentFile.item_types, payload.itemTypeName, finalEdittedItemTypeObj)
     },
@@ -553,8 +552,11 @@ export default new Vuex.Store({
         return finalEdittedItemTypeObj;
       }
       let allItemTypes = {};
+      let allTaxonomyElements = miscUtilities.getAllTaxonomyElements(state.currentFile.file);
       for (let formItemType of payload) {
         allItemTypes[formItemType.itemTypeName] = buildItemTypeDefn(formItemType.defn);
+        if (formItemType.itemTypeName !== formItemType.defn.initialItemTypeName) {
+        }
       }
       Vue.set(state.currentFile, 'item_types', allItemTypes);
     },

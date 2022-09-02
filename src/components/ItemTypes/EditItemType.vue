@@ -124,7 +124,7 @@ export default {
   created() {
     let state = this.$store.state;
     this.allItemTypes = Object.entries(state.loadedFiles[state.selectedFileName].item_types)
-      .map(([itemTypeName, defn]) => ({ itemTypeName, defn: this.populateForm(defn) }));
+      .map(([itemTypeName, defn]) => ({ itemTypeName, defn: this.populateForm(itemTypeName, defn) }));
   },
   data() {
     return {
@@ -182,7 +182,7 @@ export default {
       return tableFields;
     },
     addItemType() {
-      let newItemType = { itemTypeName: "", defn: this.populateForm({ description: "" }) };
+      let newItemType = { itemTypeName: "", defn: this.populateForm(itemTypeName: "", { description: "" }) };
       this.allItemTypes.push(newItemType);
       this.form = newItemType;
     },
@@ -195,8 +195,8 @@ export default {
     removeEnumOrUnit(rowItem) {
       this.form.itemTypeEnumsOrUnits = this.form.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
     },
-    populateForm(itemTypeDefn) {
-      let form = { itemTypeDescription: itemTypeDefn.description };
+    populateForm(itemTypeName, itemTypeDefn) {
+      let form = { initialItemTypeName: itemTypeName, itemTypeDescription: itemTypeDefn.description };
 
       let itemTypeType = '';
       if (itemTypeDefn.enums) {
