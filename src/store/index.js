@@ -553,9 +553,21 @@ export default new Vuex.Store({
       }
       let allItemTypes = {};
       let allTaxonomyElements = miscUtilities.getAllTaxonomyElements(state.currentFile.file);
+      let itemTypeToTaxonomyElement = Object.entries(allTaxonomyElements)
+        .map(([name, defn]) => [name, defn.allOf[1]["x-ob-item-type"]])
+        .reduce((result, [name, itemTypeName]) => {
+          if (!result[itemTypeName]) {
+            result[itemTypeName] = new Set();
+          }
+          result[itemTypeName].add(name);
+          return result;
+        }, {});
       for (let formItemType of payload) {
         allItemTypes[formItemType.itemTypeName] = buildItemTypeDefn(formItemType.defn);
         if (formItemType.itemTypeName !== formItemType.defn.initialItemTypeName) {
+          for (let taxonomyElementName of itemTypeToTaxonomyElement[formItemType.defn.initialItemTypeName]) {
+            allTaxonomyElements[taxonomyElementName].allOf[1]["x-ob-item-type"] = formItemType.itemTypeName;
+          }
         }
       }
       Vue.set(state.currentFile, 'item_types', allItemTypes);

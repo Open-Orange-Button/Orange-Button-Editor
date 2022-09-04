@@ -852,7 +852,7 @@ export function getAllTaxonomyElements(file) {
       let inherited = defn.allOf.filter(def => def.$ref)[0];
       let isTaxonomyElement = inherited.$ref.includes('TaxonomyElement');
       if (isTaxonomyElement) {
-        allTaxonomyElemnts[name] = defn;
+        allTaxonomyElements[name] = defn;
       }
     }
   }

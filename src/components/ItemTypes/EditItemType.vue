@@ -182,7 +182,7 @@ export default {
       return tableFields;
     },
     addItemType() {
-      let newItemType = { itemTypeName: "", defn: this.populateForm(itemTypeName: "", { description: "" }) };
+      let newItemType = { itemTypeName: "", defn: this.populateForm("", { description: "" }) };
       this.allItemTypes.push(newItemType);
       this.form = newItemType;
     },
