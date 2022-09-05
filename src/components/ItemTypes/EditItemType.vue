@@ -1,35 +1,44 @@
 <template>
   <div class="edit-item-types-container">
-    <b-form-group
-      label="Select an Item Type"
-      label-for="input-item-type-search"
-    >
-      <b-form-input
-        id="input-item-type-search"
-        v-model="itemTypeSearchFilter"
-        type="search"
-        placeholder="Search item types..."
-      />
-      <b-table
-        sticky-header
-        no-border-collapse
-        :selectable="!validationMsg"
-        :filter="itemTypeSearchFilter"
-        select-mode="single"
-        @row-clicked="setEnumUnitEditForm"
-        :items="allItemTypes
-                  .map(({ itemTypeName, defn }) => ({ item_type: itemTypeName, description: defn.itemTypeDescription, actions: '' }))
-                  .sort(({ item_type: a }, { item_type: b }) => a.localeCompare(b))">
-      <template #cell(actions)="row">
-        <b-button size="sm" :disabled="submitted" @click="removeItemType(row.item)" variant="danger">Remove</b-button>
-      </template>
-      </b-table>
-      <div class="center-items-container">
-        <b-button size="sm"  :disabled="submitted" @click="addItemType" variant="primary">Add New Item Type</b-button>
-      </div>
-    </b-form-group>
+    <b-card class="form-b-card-padding" style="padding-top: 0em; margin-bottom: 1em">
+      <b-form-group
+        label="Select an Item Type"
+        label-for="input-item-type-search"
+      >
+        <b-form-input
+          id="input-item-type-search"
+          v-model="itemTypeSearchFilter"
+          type="search"
+          placeholder="Search item types..."
+        />
+        <b-table
+          striped
+          sticky-header
+          no-border-collapse
+          :selectable="!validationMsg"
+          :filter="itemTypeSearchFilter"
+          select-mode="single"
+          @row-clicked="setEnumUnitEditForm"
+          :items="allItemTypes
+                    .map(({ itemTypeName, defn }) => ({ item_type: itemTypeName, description: defn.itemTypeDescription }))
+                    .sort(({ item_type: a }, { item_type: b }) => a.localeCompare(b))">
+        </b-table>
+        <div class="center-items-container">
+          <b-button size="sm" :disabled="submitted" @click="addItemType" variant="primary">Add New Item Type</b-button>
+        </div>
+      </b-form-group>
+    </b-card>
     <h6 v-if="validationMsg" style="color: red">{{ validationMsg }}</h6>
     <div class="edit-item-types-container" v-if="form">
+    <b-card class="form-b-card-padding">
+      <span tabindex="0" id="remove-item-type-button" class="d-inline-block" style="float: right;">
+        <b-button size="sm" :disabled="disableRemoveItemType" variant="danger"
+          @click="removeItemType">Remove Item Type</b-button>
+      </span>
+      <b-tooltip v-if="disableRemoveItemType" target="remove-item-type-button" placement="bottom">
+        Cannot remove this item type because it is used by an OB Element.
+      </b-tooltip>
+      <br>
       <b-form @submit="onSubmit">
         <b-form-group
           label="Item Type Name:"
@@ -70,6 +79,7 @@
         </b-form-group>
 
         <b-table
+          striped
           sticky-header
           no-border-collapse
           :fields="getTableFields()"
@@ -80,10 +90,11 @@
         >
           <template #cell(actions)="row">
             <b-button size="sm" :disabled="submitted" @click="row.toggleDetails">{{ row.detailsShowing ? "Close" : "Edit" }}</b-button>
-            <b-button size="sm" :disabled="submitted" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
           </template>
           <template #row-details="row">
-            <b-row v-for="[key, data] in Object.entries(enumOrUnitFields)">
+            <b-card class="form-b-card-padding">
+            <b-row v-for="[key, data] in Object.entries(enumOrUnitFields)"
+              :key="key">
               <b-col>
                 <label :for="`row-details-${data.label}`">{{ data.label }}:</label>
               </b-col>
@@ -91,25 +102,26 @@
                 <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" />
               </b-col>
             </b-row>
+            <b-button size="sm" :disabled="submitted" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
+            </b-card>
           </template>
         </b-table>
         <div class="center-items-container">
           <b-button size="sm"  :disabled="submitted" @click="addEnumOrUnit" variant="primary">Add New</b-button>
         </div>
-
-        <div class="line-break"></div>
-
-        <div class="center-items-container">
-          <b-button
-            type="submit"
-            variant="primary"
-            :disabled="submitted"
-          >
-            <span v-if="!submitted">Submit</span>
-            <span v-else>Submitted!</span>
-          </b-button>
-        </div>
       </b-form>
+    </b-card>
+    </div>
+    <br>
+    <div class="center-items-container">
+      <b-button
+        type="submit"
+        variant="primary"
+        :disabled="submitted"
+      >
+        <span v-if="!submitted">Submit</span>
+        <span v-else>Submitted!</span>
+      </b-button>
     </div>
     <div class="line-break"></div>
     <div class="center-items-container">
@@ -119,18 +131,21 @@
 </template>
 
 <script>
-import getAllTaxonomyElements from '../../utils/miscUtilities';
+import * as miscUtilities from '../../utils/miscUtilities';
 export default {
   created() {
     let state = this.$store.state;
     this.allItemTypes = Object.entries(state.loadedFiles[state.selectedFileName].item_types)
       .map(([itemTypeName, defn]) => ({ itemTypeName, defn: this.populateForm(itemTypeName, defn) }));
+    Object.values(miscUtilities.getAllTaxonomyElements(this.$store.state.currentFile.file))
+      .map(defn => defn.allOf[1]["x-ob-item-type"])
+      .forEach(itemType => this.itemTypesInUse.add(itemType));
   },
   data() {
     return {
       itemTypeToEdit: "",
       allItemTypes: [],
-      usedItemTypes: new Set(),
+      itemTypesInUse: new Set(),
       form: null,
       itemTypeTypes: [
         { text: "", value: "" },
@@ -189,8 +204,10 @@ export default {
     addEnumOrUnit() {
       this.form.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
     },
-    removeItemType(rowItem) {
-      this.allItemTypes = this.allItemTypes.filter(i => i.itemTypeName !== rowItem.item_type);
+    removeItemType() {
+      this.allItemTypes = this.allItemTypes.filter(i => i.itemTypeName !== this.form.itemTypeName);
+      this.form = null;
+      this.validationMsg = "";
     },
     removeEnumOrUnit(rowItem) {
       this.form.itemTypeEnumsOrUnits = this.form.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
@@ -225,6 +242,13 @@ export default {
   computed: {
     itemTypeNameSet() {
       return new Set(this.allItemTypes.map(i => i.itemTypeName));
+    },
+    disableRemoveItemType() {
+      let itemTypeIsUsed = [
+        this.form.itemTypeName,
+        this.form.defn.initialItemTypeName // in case the user changes the name then tries to delete
+      ].some(n => this.itemTypesInUse.has(n));
+      return this.submitted || itemTypeIsUsed;
     }
   }
 };
@@ -234,5 +258,10 @@ export default {
 .edit-item-type-create-enums-or-units-table {
   word-break: break-word;
 }
+
+.form-b-card-padding {
+  padding: 0.5em
+}
+
 </style>
 
