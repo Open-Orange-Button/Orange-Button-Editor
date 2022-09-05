@@ -513,6 +513,10 @@ export default {
       this.$store.commit("toggleSelectDefinitionNode");
       this.$store.commit("showView", { viewType: "Editor", viewName: "DetailedNodeView" });
 
+      if (this.$store.state.activeEditorView !== "DetailedNodeView") {
+        return;
+      }
+
       this.$store.commit({
         type: "selectNode",
         nodeName: this.name,

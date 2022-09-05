@@ -69,7 +69,7 @@ export default new Vuex.Store({
     activeEditingView: "EditDefinitionFormDisabled",
     // right pane state for views
     activeEditorView: null,
-    forcedFocusViews: new Set("EditItemType", "EditItemTypeGroup"),
+    forcedFocusViews: new Set(["EditItemType", "EditItemTypeGroup"]),
     // view state for Item Types Editor
     activeItemTypesView: null,
 
