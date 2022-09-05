@@ -99,7 +99,7 @@
                 <label :for="`row-details-${data.label}`">{{ data.label }}:</label>
               </b-col>
               <b-col>
-                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" :state="!Boolean(data.validator && data.validator())"/>
+                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" :state="data.validator ? data.validator(row.item[key]) : true"/>
               </b-col>
             </b-row>
             <b-button size="sm" :disabled="submitted" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
@@ -153,8 +153,8 @@ export default {
         { text: "Enums", value: "enums" }
       ],
       enumOrUnitFields: {
-        enumOrUnitID: { label: 'ID', editable: false, thStyle: { width: "150px" }, validator: this.validateEnumOrUnitsID },
-        enumOrUnitLabel: { label: 'Label', editable: true, thStyle: { width: "150px" }, validator: this.validateEnumOrUnitsLabel },
+        enumOrUnitID: { label: 'ID', editable: false, thStyle: { width: "150px" }, validator: this.validateEnumOrUnitID },
+        enumOrUnitLabel: { label: 'Label', editable: true, thStyle: { width: "150px" }, validator: this.validateEnumOrUnitLabel },
         enumOrUnitDescription: { label: 'Description', editable: true, validator: null }
       },
       enumOrUnitToAddForm: {
@@ -183,8 +183,8 @@ export default {
       }
       let validators = [
         this.validateItemTypeName,
-        this.validateEnumOrUnitsID,
-        this.validateEnumOrUnitsLabel
+        this.validateAllEnumOrUnitIDs,
+        this.validateAllEnumOrUnitLabels
       ];
       let msgs = validators.map(f => f()).filter(m => m);
       return msgs ? msgs[0] : "";
@@ -197,29 +197,37 @@ export default {
         return "All item types must have unique names.";
       }
     },
-    validateEnumOrUnitsID() {
+    validateAllEnumOrUnitIDs() {
       let itemTypeType = this.itemTypeForm.defn.itemTypeType;
       let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
-      let itemTypeEnumsOrUnitsIDs = new Set(itemTypeEnumsOrUnits.map(i => i.enumOrUnitID));
-      if (itemTypeEnumsOrUnitsIDs.has("")) {
+      if (this.enumOrUnitIDCounts[""]) {
         return `All ${itemTypeType} of an item type must have nonempty IDs.`;
       }
-      if (itemTypeEnumsOrUnits.length !== itemTypeEnumsOrUnitsIDs.size) {
+      if (Object.values(this.enumOrUnitIDCounts).every(c => c === 1)) {
         return `All ${itemTypeType} of an item type must have unique IDs.`;
       }
       return "";
     },
-    validateEnumOrUnitsLabel() {
+    validateAllEnumOrUnitLabels() {
       let itemTypeType = this.itemTypeForm.defn.itemTypeType;
       let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
-      let itemTypeEnumsOrUnitsLabels = new Set(itemTypeEnumsOrUnits.map(i => i.enumOrUnitLabel));
-      if (itemTypeEnumsOrUnitsLabels.has("")) {
-        return `All ${itemTypeType} of an item type must have nonempty labels.`;
+      if (this.enumOrUnitLabelCounts[""]) {
+        return `All ${itemTypeType} of an item type must have nonempty IDs.`;
       }
-      if (itemTypeEnumsOrUnits.length !== itemTypeEnumsOrUnitsLabels.size) {
-        return `All ${itemTypeType} of an item type must have unique labels.`;
+      if (Object.values(this.enumOrUnitLabelCounts).every(c => c === 1)) {
+        return `All ${itemTypeType} of an item type must have unique IDs.`;
       }
       return "";
+    },
+    validateEnumOrUnitID(id) {
+      let nonemptyID = Boolean(id);
+      let uniqueID = Boolean(this.enumOrUnitIDCounts[id]) && this.enumOrUnitIDCounts[id] === 1;
+      return nonemptyID && uniqueID;
+    },
+    validateEnumOrUnitLabel(label) {
+      let nonemptyLabel = Boolean(label);
+      let uniqueLabel = Boolean(this.enumOrUnitLabelCounts[label]) && this.enumOrUnitLabelCounts[label] === 1;
+      return nonemptyLabel && uniqueLabel;
     },
     exitView() {
       this.$store.commit("showNoItemTypesViews");
@@ -239,7 +247,7 @@ export default {
       this.itemTypeForm = newItemType;
     },
     addEnumOrUnit() {
-      this.validationMsg = this.validateEnumOrUnitsID();
+      this.validationMsg = this.validateAllEnumOrUnitIDs();
       if (this.validationMsg) {
         return;
       }
@@ -278,6 +286,15 @@ export default {
         return;
       }
       this.itemTypeForm = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
+    },
+    arrItemAppearanceCount(arr) {
+      return arr.reduce((counts, item) => {
+        if (!arr[item]) {
+          arr[item] = 0;
+        }
+        arr[item] += 1;
+        return arr;
+      }, {});
     }
   },
   computed: {
@@ -290,6 +307,22 @@ export default {
         this.itemTypeForm.defn.initialItemTypeName // in case the user changes the name then tries to delete
       ].some(n => this.itemTypesInUse.has(n));
       return this.submitted || itemTypeIsUsed;
+    },
+    allEnumOrUnitIDs() {
+      let itemTypeType = this.itemTypeForm.defn.itemTypeType;
+      let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
+      return itemTypeEnumsOrUnits.map(i => i.enumOrUnitID);
+    },
+    allEnumOrUnitLabels() {
+      let itemTypeType = this.itemTypeForm.defn.itemTypeType;
+      let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
+      return itemTypeEnumsOrUnits.map(i => i.enumOrUnitLabel);
+    },
+    enumOrUnitIDCounts() {
+      return this.arrItemAppearanceCount(this.allEnumOrUnitIDs);
+    },
+    enumOrUnitLabelCounts() {
+      return this.arrItemAppearanceCount(this.allEnumOrUnitLabels);
     }
   }
 };
