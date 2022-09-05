@@ -29,7 +29,7 @@
       </b-form-group>
     </b-card>
     <h6 v-if="validationMsg" style="color: red">{{ validationMsg }}</h6>
-    <div class="edit-item-types-container" v-if="enumUnitForm">
+    <div class="edit-item-types-container" v-if="itemTypeForm">
     <b-card class="form-b-card-padding">
       <span tabindex="0" id="remove-item-type-button" class="d-inline-block" style="float: right;">
         <b-button size="sm" :disabled="disableRemoveItemType" variant="danger"
@@ -46,9 +46,9 @@
         >
           <b-form-input
             id="input-edit-item-type-item-type-description"
-            v-model="enumUnitForm.itemTypeName"
+            v-model="itemTypeForm.itemTypeName"
             :disabled="submitted"
-            :state="Boolean(enumUnitForm.itemTypeName)"
+            :state="Boolean(itemTypeForm.itemTypeName)"
           ></b-form-input>
         </b-form-group>
 
@@ -58,7 +58,7 @@
         >
           <b-form-textarea
             id="input-edit-item-type-item-type-description"
-            v-model="enumUnitForm.defn.itemTypeDescription"
+            v-model="itemTypeForm.defn.itemTypeDescription"
             rows="3"
             max-rows="6"
             :disabled="submitted"
@@ -72,7 +72,7 @@
         >
           <b-form-select
             id="input-item-type-type"
-            v-model="enumUnitForm.defn.itemTypeType"
+            v-model="itemTypeForm.defn.itemTypeType"
             :options="itemTypeTypes"
             :disabled="submitted"
           ></b-form-select>
@@ -83,7 +83,7 @@
           sticky-header
           no-border-collapse
           :fields="getTableFields()"
-          :items="enumUnitForm.defn.itemTypeEnumsOrUnits"
+          :items="itemTypeForm.defn.itemTypeEnumsOrUnits"
           id="edit-item-type-create-enums-or-units-table"
           class="item-type-table"
           ref="edit-item-type-create-enums-or-units-table-ref"
@@ -146,7 +146,7 @@ export default {
       itemTypeToEdit: "",
       allItemTypes: [],
       itemTypesInUse: new Set(),
-      enumUnitForm: null,
+      itemTypeForm: null,
       itemTypeTypes: [
         { text: "", value: "" },
         { text: "Units", value: "units" },
@@ -203,18 +203,18 @@ export default {
       }
       let newItemType = { itemTypeName: "", defn: this.loadItemType("", { description: "" }) };
       this.allItemTypes.push(newItemType);
-      this.enumUnitForm = newItemType;
+      this.itemTypeForm = newItemType;
     },
     addEnumOrUnit() {
-      this.enumUnitForm.defn.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
+      this.itemTypeForm.defn.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
     },
     removeItemType() {
-      this.allItemTypes = this.allItemTypes.filter(i => i.itemTypeName !== this.enumUnitForm.itemTypeName);
-      this.enumUnitForm = null;
+      this.allItemTypes = this.allItemTypes.filter(i => i.itemTypeName !== this.itemTypeForm.itemTypeName);
+      this.itemTypeForm = null;
       this.validationMsg = "";
     },
     removeEnumOrUnit(rowItem) {
-      this.enumUnitForm.defn.itemTypeEnumsOrUnits = this.enumUnitForm.defn.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
+      this.itemTypeForm.defn.itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
     },
     loadItemType(itemTypeName, itemTypeDefn) {
       let data = { initialItemTypeName: itemTypeName, itemTypeDescription: itemTypeDefn.description };
@@ -240,7 +240,7 @@ export default {
       if (this.validationMsg) {
         return;
       }
-      this.enumUnitForm = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
+      this.itemTypeForm = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
     }
   },
   computed: {
@@ -249,8 +249,8 @@ export default {
     },
     disableRemoveItemType() {
       let itemTypeIsUsed = [
-        this.enumUnitForm.itemTypeName,
-        this.enumUnitForm.defn.initialItemTypeName // in case the user changes the name then tries to delete
+        this.itemTypeForm.itemTypeName,
+        this.itemTypeForm.defn.initialItemTypeName // in case the user changes the name then tries to delete
       ].some(n => this.itemTypesInUse.has(n));
       return this.submitted || itemTypeIsUsed;
     }
