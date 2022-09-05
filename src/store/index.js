@@ -366,13 +366,13 @@ export default new Vuex.Store({
       Editor view handling
     */
     showView(state, { viewType /* 'Editor' or 'ItemType' */, viewName, selectDefinitionNode }) {
-      let inForcedFocusView = [
-        state.activeEditorView,
-        state.activeItemTypesView
-      ].some(v => state.forcedFocusViews.has(v));
-      if (inForcedFocusView) {
-        return;
-      }
+      // let inForcedFocusView = [
+      //   state.activeEditorView,
+      //   state.activeItemTypesView
+      // ].some(v => state.forcedFocusViews.has(v));
+      // if (inForcedFocusView) {
+      //   return;
+      // }
       if (viewType === "Editor") {
         state.activeEditorView = viewName;
       } else if (viewType === "ItemType") {
