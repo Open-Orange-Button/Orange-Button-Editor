@@ -197,6 +197,10 @@ export default {
       return tableFields;
     },
     addItemType() {
+      this.validationMsg = this.validateItemTypes();
+      if (this.validationMsg) {
+        return;
+      }
       let newItemType = { itemTypeName: "", defn: this.populateForm("", { description: "" }) };
       this.allItemTypes.push(newItemType);
       this.form = newItemType;
