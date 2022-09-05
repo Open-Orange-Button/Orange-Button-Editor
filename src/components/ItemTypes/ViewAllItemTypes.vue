@@ -63,7 +63,7 @@ export default {
     },
     methods: {
         exitView() {
-            this.$store.commit("showNoItemTypesViews")
+          this.$store.commit("showView", { viewType: "ItemType", viewName: null });
         },
         formatUnitsOrEnums(units_obj, unitsOrEnums) {
             let ret_units_table = []

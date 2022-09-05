@@ -159,7 +159,7 @@ export default {
     },
     methods: {
         exitView() {
-            this.$store.commit("showNoItemTypesViews")
+          this.$store.commit("showView", { viewType: "ItemType", viewName: null });
         },
         onRowSelected(items) {
             this.selectedEnumsOrUnits = items

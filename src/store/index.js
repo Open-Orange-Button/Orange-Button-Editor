@@ -69,6 +69,7 @@ export default new Vuex.Store({
     activeEditingView: "EditDefinitionFormDisabled",
     // right pane state for views
     activeEditorView: null,
+    forcedFocusViews: new Set("EditItemType", "EditItemTypeGroup"),
     // view state for Item Types Editor
     activeItemTypesView: null,
 
@@ -364,51 +365,22 @@ export default new Vuex.Store({
     /*
       Editor view handling
     */
-    showDetailedView(state) {
-      state.activeEditorView = "DetailedNodeView"
-    },
-    showEditNodeView(state) {
-      state.activeEditorView = "EditDefinition"
-      state.selectDefinitionNode = true;
-    },
-    showCreateDefinitionForm(state) {
-      state.activeEditorView = "CreateDefinitionForm"
-    },
-    showLoadInDefinitionForm(state) {
-      state.activeEditorView = "LoadInDefinition"
-    },
-    showEditItemTypesMain(state) {
-      state.activeEditorView = "EditItemTypesMain"
-    },
-    showNoView(state) {
-      state.activeEditorView = null
-    },
-
-    // show state for Item Types Editor
-    // todo: consolidate into one function you pass the string to
-    showCreateItemTypeGroup(state) {
-      state.activeItemTypesView = "CreateItemTypeGroup"
-    },
-    showEditItemType(state) {
-      state.activeItemTypesView = "EditItemType"
-    },
-    showEditItemTypeGroup(state) {
-      state.activeItemTypesView = "EditItemTypeGroup"
-    },
-    showViewAllItemTypes(state) {
-      state.activeItemTypesView = "ViewAllItemTypes"
-    },
-    showViewAllItemTypeGroups(state) {
-      state.activeItemTypesView = "ViewAllItemTypeGroups"
-    },
-    showNoItemTypesViews(state) {
-      state.activeItemTypesView = null
-    },
-    showDeleteItemType(state) {
-      state.activeItemTypesView = "DeleteItemType"
-    },
-    showDeleteItemTypeGroup(state) {
-      state.activeItemTypesView = "DeleteItemTypeGroup"
+    showView(state, { viewType /* 'Editor' or 'ItemType' */, viewName, selectDefinitionNode }) {
+      let inForcedFocusView = [
+        state.activeEditorView,
+        state.activeItemTypesView
+      ].some(v => state.forcedFocusViews.has(v));
+      if (inForcedFocusView) {
+        return;
+      }
+      if (viewType === "Editor") {
+        state.activeEditorView = viewName;
+      } else if (viewType === "ItemType") {
+        state.activeItemTypesView = viewName;
+      }
+      if (selectDefinitionNode) {
+        state.selectedDefinitionNode = selectDefinitionNode;
+      }
     },
     /* 
       JSON file handling

@@ -162,7 +162,7 @@ export default {
     },
     methods: {
         exitView() {
-            this.$store.commit("showNoItemTypesViews")
+          this.$store.commit("showView", { viewType: "ItemType", viewName: null });
         },
         getBaseItemType(itemTypeRef) {
             return itemTypeRef.slice(itemTypeRef.lastIndexOf('/') + 1)

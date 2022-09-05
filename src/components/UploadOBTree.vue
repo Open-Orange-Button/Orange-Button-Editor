@@ -511,7 +511,7 @@ export default {
     },
     toggleSelect() {
       this.$store.commit("toggleSelectDefinitionNode");
-      this.$store.commit("showDetailedView");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "DetailedNodeView" });
 
       this.$store.commit({
         type: "selectNode",

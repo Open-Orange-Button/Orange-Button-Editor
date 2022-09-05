@@ -105,7 +105,7 @@ export default {
   },
   methods: {
     backToPrevView() {
-      this.$store.commit("showDetailedView");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "DetailedNodeView" });
     },
     editNodeSubmit() {
       this.preSubmit = false;

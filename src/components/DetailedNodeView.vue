@@ -173,7 +173,7 @@ export default {
       }
     },
     showEditNodeView() {
-      this.$store.commit("showEditNodeView");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "EditDefinition", selectDefinitionNode: true });
     }
   },
   watch: {

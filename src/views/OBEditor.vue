@@ -576,17 +576,16 @@ export default {
     },
     showCreateDefinitionForm() {
       this.$store.commit("selectNone")
-      this.$store.commit("showCreateDefinitionForm");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "CreateDefinitionForm" });
       this.$store.commit("refreshCreateDefnInputs", true);
     },
     showLoadInDefinitionForm() {
       this.$store.commit("selectNone")
-      this.$store.commit("showLoadInDefinitionForm");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "LoadInDefinition" });
     },
     showEditItemTypesMain() {
       this.$store.commit("selectNone")
-      this.$store.commit("showNoItemTypesViews")
-      this.$store.commit("showEditItemTypesMain");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "EditItemTypesMain" });
     },
     toggleExpandAll() {
       this.expandAllObjects = !this.expandAllObjects;
@@ -797,9 +796,9 @@ export default {
       ];
 
       if (this.$store.state.currentFile)
-        this.$store.state.selectedFileName = this.$store.state.currentFile["fileName"]
+        this.$store.state.selectedFileName = this.$store.state.currentFile["fileName"];
 
-      this.$store.commit('showNoView')
+      this.$store.commit("showView", { viewType: "Editor", viewName: null });
 
       this.$store.state.isSelected = null;
       this.$store.state.nameRef = null;
@@ -854,7 +853,7 @@ export default {
       this.numOfElem = 50;
       this.$store.state.treeSearchTerm = "";
       this.$store.state.nameRef = "";
-      this.$store.commit("showNoView")
+      this.$store.commit("showView", { viewType: "Editor", viewName: null });
     },
     showAddFileModal() {
       this.file = null;

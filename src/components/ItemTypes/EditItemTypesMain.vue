@@ -40,29 +40,29 @@ export default {
   },
   methods: {
     exitView() {
-      this.$store.commit("showNoView")
+      this.$store.commit("showView", { viewType: "Editor", viewName: null });
     },
     viewViewAllItemTypes() {
-        this.$store.commit("showViewAllItemTypes")
+      this.$store.commit("showView", { viewType: "ItemType", viewName: "ViewAllItemTypes" });
     },
     viewViewAllItemTypeGroups() {
-        this.$store.commit("showViewAllItemTypeGroups")
+      this.$store.commit("showView", { viewType: "ItemType", viewName: "ViewAllItemTypeGroups" });
     },
     viewCreateItemTypeGroup() {
-        this.$store.commit("showCreateItemTypeGroup")
+      this.$store.commit("showView", { viewType: "ItemType", viewName: "CreateItemTypeGroup" });
     },
     viewEditItemType() {
-        this.$store.commit("showEditItemType")
+      this.$store.commit("showView", { viewType: "ItemType", viewName: "EditItemType" });
     },
     viewEditItemTypeGroup() {
-        this.$store.commit("showEditItemTypeGroup")
+      this.$store.commit("showView", { viewType: "ItemType", viewName: "EditItemTypeGroup" });
     },
     viewDeleteItemTypeGroup() {
-        this.$store.commit("showDeleteItemTypeGroup")
+      this.$store.commit("showView", { viewType: "ItemType", viewName: "DeleteItemTypeGroup" });
     }
   },
   beforeDestroy() {
-      this.$store.commit("showNoItemTypesViews")
+    this.$store.commit("showView", { viewType: "ItemType", viewName: null });
   }
 }
 </script>

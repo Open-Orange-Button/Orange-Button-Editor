@@ -230,7 +230,7 @@ export default {
       return nonemptyLabel && uniqueLabel;
     },
     exitView() {
-      this.$store.commit("showNoItemTypesViews");
+      this.$store.commit("showView", { viewType: "ItemType", viewName: null });
     },
     getTableFields() {
       let tableFields = Object.entries(this.enumOrUnitFields).map(([key, { label, thStyle }]) => ({ key, label, thStyle }));
