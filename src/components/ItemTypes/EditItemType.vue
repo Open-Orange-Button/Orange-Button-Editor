@@ -29,7 +29,7 @@
       </b-form-group>
     </b-card>
     <h6 v-if="validationMsg" style="color: red">{{ validationMsg }}</h6>
-    <div class="edit-item-types-container" v-if="form">
+    <div class="edit-item-types-container" v-if="enumUnitForm">
     <b-card class="form-b-card-padding">
       <span tabindex="0" id="remove-item-type-button" class="d-inline-block" style="float: right;">
         <b-button size="sm" :disabled="disableRemoveItemType" variant="danger"
@@ -46,9 +46,9 @@
         >
           <b-form-input
             id="input-edit-item-type-item-type-description"
-            v-model="form.itemTypeName"
+            v-model="enumUnitForm.itemTypeName"
             :disabled="submitted"
-            :state="Boolean(form.itemTypeName)"
+            :state="Boolean(enumUnitForm.itemTypeName)"
           ></b-form-input>
         </b-form-group>
 
@@ -58,7 +58,7 @@
         >
           <b-form-textarea
             id="input-edit-item-type-item-type-description"
-            v-model="form.defn.itemTypeDescription"
+            v-model="enumUnitForm.defn.itemTypeDescription"
             rows="3"
             max-rows="6"
             :disabled="submitted"
@@ -72,7 +72,7 @@
         >
           <b-form-select
             id="input-item-type-type"
-            v-model="form.defn.itemTypeType"
+            v-model="enumUnitForm.defn.itemTypeType"
             :options="itemTypeTypes"
             :disabled="submitted"
           ></b-form-select>
@@ -83,7 +83,7 @@
           sticky-header
           no-border-collapse
           :fields="getTableFields()"
-          :items="form.defn.itemTypeEnumsOrUnits"
+          :items="enumUnitForm.defn.itemTypeEnumsOrUnits"
           id="edit-item-type-create-enums-or-units-table"
           class="item-type-table"
           ref="edit-item-type-create-enums-or-units-table-ref"
@@ -136,7 +136,7 @@ export default {
   created() {
     let state = this.$store.state;
     this.allItemTypes = Object.entries(state.loadedFiles[state.selectedFileName].item_types)
-      .map(([itemTypeName, defn]) => ({ itemTypeName, defn: this.populateForm(itemTypeName, defn) }));
+      .map(([itemTypeName, defn]) => ({ itemTypeName, defn: this.loadItemType(itemTypeName, defn) }));
     Object.values(miscUtilities.getAllTaxonomyElements(this.$store.state.currentFile.file))
       .map(defn => defn.allOf[1]["x-ob-item-type"])
       .forEach(itemType => this.itemTypesInUse.add(itemType));
@@ -146,7 +146,7 @@ export default {
       itemTypeToEdit: "",
       allItemTypes: [],
       itemTypesInUse: new Set(),
-      form: null,
+      enumUnitForm: null,
       itemTypeTypes: [
         { text: "", value: "" },
         { text: "Units", value: "units" },
@@ -201,23 +201,23 @@ export default {
       if (this.validationMsg) {
         return;
       }
-      let newItemType = { itemTypeName: "", defn: this.populateForm("", { description: "" }) };
+      let newItemType = { itemTypeName: "", defn: this.loadItemType("", { description: "" }) };
       this.allItemTypes.push(newItemType);
-      this.form = newItemType;
+      this.enumUnitForm = newItemType;
     },
     addEnumOrUnit() {
-      this.form.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
+      this.enumUnitForm.defn.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
     },
     removeItemType() {
-      this.allItemTypes = this.allItemTypes.filter(i => i.itemTypeName !== this.form.itemTypeName);
-      this.form = null;
+      this.allItemTypes = this.allItemTypes.filter(i => i.itemTypeName !== this.enumUnitForm.itemTypeName);
+      this.enumUnitForm = null;
       this.validationMsg = "";
     },
     removeEnumOrUnit(rowItem) {
-      this.form.itemTypeEnumsOrUnits = this.form.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
+      this.enumUnitForm.defn.itemTypeEnumsOrUnits = this.enumUnitForm.defn.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
     },
-    populateForm(itemTypeName, itemTypeDefn) {
-      let form = { initialItemTypeName: itemTypeName, itemTypeDescription: itemTypeDefn.description };
+    loadItemType(itemTypeName, itemTypeDefn) {
+      let data = { initialItemTypeName: itemTypeName, itemTypeDescription: itemTypeDefn.description };
 
       let itemTypeType = '';
       if (itemTypeDefn.enums) {
@@ -225,22 +225,22 @@ export default {
       } else if (itemTypeDefn.units) {
         itemTypeType = 'units';
       }
-      form.itemTypeType = itemTypeType;
+      data.itemTypeType = itemTypeType;
 
-      form.itemTypeEnumsOrUnits = Object.entries(itemTypeDefn[itemTypeType] || [])
+      data.itemTypeEnumsOrUnits = Object.entries(itemTypeDefn[itemTypeType] || [])
         .map(([id, { label, description }]) => ({
           enumOrUnitID: id,
           enumOrUnitLabel: label,
           enumOrUnitDescription: description
         }));
-      return form;
+      return data;
     },
     setEnumUnitEditForm(rowItem) {
       this.validationMsg = this.validateItemTypes();
       if (this.validationMsg) {
         return;
       }
-      this.form = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
+      this.enumUnitForm = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
     }
   },
   computed: {
@@ -249,8 +249,8 @@ export default {
     },
     disableRemoveItemType() {
       let itemTypeIsUsed = [
-        this.form.itemTypeName,
-        this.form.defn.initialItemTypeName // in case the user changes the name then tries to delete
+        this.enumUnitForm.itemTypeName,
+        this.enumUnitForm.defn.initialItemTypeName // in case the user changes the name then tries to delete
       ].some(n => this.itemTypesInUse.has(n));
       return this.submitted || itemTypeIsUsed;
     }
