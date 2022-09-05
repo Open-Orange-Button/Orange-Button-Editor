@@ -123,7 +123,7 @@
         <span v-else>Submitted!</span>
       </b-button>
     </div>
-    <div class="line-break"></div>
+    <br>
     <div class="center-items-container">
       <b-button variant="danger" @click="exitView" size="sm">Back</b-button>
     </div>
@@ -259,6 +259,12 @@ export default {
 </script>
 
 <style>
+.center-items-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .edit-item-type-create-enums-or-units-table {
   word-break: break-word;
 }

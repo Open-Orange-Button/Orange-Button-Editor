@@ -110,8 +110,7 @@
                 </div>
             </span>
         </div>          
-        <div class="line-break">
-        </div>          
+        <br>
         <div class="center-items-container">
             <b-button variant="danger" @click="exitView" size="sm">Back</b-button>
         </div>
@@ -338,5 +337,10 @@ export default {
 </script>
 
 <style>
+.center-items-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
 </style>

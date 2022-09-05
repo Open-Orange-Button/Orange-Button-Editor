@@ -386,8 +386,7 @@
         <h4 v-if="$store.state.activeEditorView == 'EditItemTypesMain'">
           <h4 v-if="!$store.state.activeItemTypesView">Item Types Editor</h4>
           <h4 v-else-if="$store.state.activeItemTypesView == 'ViewAllItemTypes'">View All Item Types</h4>
-          <h4 v-else-if="$store.state.activeItemTypesView == 'CreateItemType'">Create Item Type</h4>
-          <h4 v-else-if="$store.state.activeItemTypesView == 'EditItemType'">Edit Item Type</h4>
+          <h4 v-else-if="$store.state.activeItemTypesView == 'EditItemType'">Edit Item Types</h4>
           <h4 v-else-if="$store.state.activeItemTypesView == 'CreateItemTypeGroup'">Create Item Type Group</h4>
           <h4 v-else-if="$store.state.activeItemTypesView == 'EditItemTypeGroup'">Edit Item Type Group</h4>
           <h4 v-else-if="$store.state.activeItemTypesView == 'DeleteItemTypeGroup'">Delete Item Type Group</h4>

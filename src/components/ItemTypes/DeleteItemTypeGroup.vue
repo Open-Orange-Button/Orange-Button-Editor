@@ -39,13 +39,11 @@
                 </template>
             </b-table>
         </div>
-        <div class="line-break">
-        </div>
+        <br>
         <div class="center-items-container">
             <b-button variant="danger" @click="deleteItemTypeGroup" size="sm" :disabled="isItemTypeGroupSelected">Delete Item Type</b-button>
         </div>
-        <div class="line-break">
-        </div>               
+        <br>
         <div class="back-btn-container">
             <b-button variant="danger" @click="exitView" size="sm">Back</b-button>
         </div>
@@ -203,6 +201,12 @@ export default {
 </script>
 
 <style>
+.center-items-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .all-item-type-groups-container {
     border: 1px solid #cccccc;
     max-height: 565px;

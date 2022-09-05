@@ -31,8 +31,7 @@
                 </template>
             </b-table>
         </div>
-        <div class="line-break">
-        </div>       
+        <br>
 
         <div class="back-btn-container">
             <b-button variant="danger" @click="exitView" size="sm">Back</b-button>

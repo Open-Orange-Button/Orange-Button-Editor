@@ -386,9 +386,6 @@ export default new Vuex.Store({
 
     // show state for Item Types Editor
     // todo: consolidate into one function you pass the string to
-    showCreateItemType(state) {
-      state.activeItemTypesView = "CreateItemType"
-    },
     showCreateItemTypeGroup(state) {
       state.activeItemTypesView = "CreateItemTypeGroup"
     },
