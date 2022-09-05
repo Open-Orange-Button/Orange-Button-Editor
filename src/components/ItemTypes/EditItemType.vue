@@ -15,7 +15,7 @@
           striped
           sticky-header
           no-border-collapse
-          :selectable="!validationMsg"
+          :selectable="!submitted && !validationMsg"
           :filter="itemTypeSearchFilter"
           select-mode="single"
           @row-clicked="setEnumUnitEditForm"
@@ -39,7 +39,7 @@
         Cannot remove this item type because it is used by an OB Element.
       </b-tooltip>
       <br>
-      <b-form @submit="onSubmit">
+      <b-form>
         <b-form-group
           label="Item Type Name:"
           label-for="input-edit-item-type-item-type-description"
@@ -48,7 +48,7 @@
             id="input-edit-item-type-item-type-description"
             v-model="itemTypeForm.itemTypeName"
             :disabled="submitted"
-            :state="Boolean(itemTypeForm.itemTypeName)"
+            :state="!Boolean(validateItemTypeName())"
           ></b-form-input>
         </b-form-group>
 
@@ -99,7 +99,7 @@
                 <label :for="`row-details-${data.label}`">{{ data.label }}:</label>
               </b-col>
               <b-col>
-                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" />
+                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" :state="!Boolean(data.validator && data.validator())"/>
               </b-col>
             </b-row>
             <b-button size="sm" :disabled="submitted" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
@@ -107,7 +107,7 @@
           </template>
         </b-table>
         <div class="center-items-container">
-          <b-button size="sm"  :disabled="submitted" @click="addEnumOrUnit" variant="primary">Add New</b-button>
+          <b-button size="sm"  :disabled="submitted" @click="addEnumOrUnit" variant="primary">Add New {{ miscUtils.capitalizeFirstChar(itemTypeForm.defn.itemTypeType.slice(0, -1)) }} </b-button>
         </div>
       </b-form>
     </b-card>
@@ -119,7 +119,7 @@
         variant="primary"
         :disabled="submitted"
       >
-        <span v-if="!submitted">Submit</span>
+        <span v-if="!submitted" @click="onSubmit">Submit</span>
         <span v-else>Submitted!</span>
       </b-button>
     </div>
@@ -137,12 +137,12 @@ export default {
     let state = this.$store.state;
     this.allItemTypes = Object.entries(state.loadedFiles[state.selectedFileName].item_types)
       .map(([itemTypeName, defn]) => ({ itemTypeName, defn: this.loadItemType(itemTypeName, defn) }));
-    Object.values(miscUtilities.getAllTaxonomyElements(this.$store.state.currentFile.file))
-      .map(defn => defn.allOf[1]["x-ob-item-type"])
-      .forEach(itemType => this.itemTypesInUse.add(itemType));
+    this.itemTypesInUse = new Set(Object.values(miscUtilities.getAllTaxonomyElements(this.$store.state.currentFile.file))
+      .map(defn => defn.allOf[1]["x-ob-item-type"]));
   },
   data() {
     return {
+      miscUtils: miscUtilities,
       itemTypeToEdit: "",
       allItemTypes: [],
       itemTypesInUse: new Set(),
@@ -153,9 +153,9 @@ export default {
         { text: "Enums", value: "enums" }
       ],
       enumOrUnitFields: {
-        enumOrUnitID: { label: 'ID', editable: false, thStyle: { width: "150px" } },
-        enumOrUnitLabel: { label: 'Label', editable: true, thStyle: { width: "150px" } },
-        enumOrUnitDescription: { label: 'Description', editable: true }
+        enumOrUnitID: { label: 'ID', editable: false, thStyle: { width: "150px" }, validator: this.validateEnumOrUnitsID },
+        enumOrUnitLabel: { label: 'Label', editable: true, thStyle: { width: "150px" }, validator: this.validateEnumOrUnitsLabel },
+        enumOrUnitDescription: { label: 'Description', editable: true, validator: null }
       },
       enumOrUnitToAddForm: {
         enumOrUnitID: "",
@@ -169,22 +169,55 @@ export default {
     };
   },
   methods: {
-    onSubmit(event) {
-      event.preventDefault();
-      this.submitted = true;
-      this.validationMsg = this.validateItemTypes();
+    onSubmit() {
+      this.validationMsg = this.validateItemTypeForm();
       if (this.validationMsg) {
         return;
       }
+      this.submitted = true;
       this.$store.commit("setItemTypes", this.allItemTypes);
     },
-    validateItemTypes() {
-      // all item type names are nonempty
-      if (this.itemTypeNameSet.has('')) {
+    validateItemTypeForm() {
+      if (!this.itemTypeForm) {
+        return "";
+      }
+      let validators = [
+        this.validateItemTypeName,
+        this.validateEnumOrUnitsID,
+        this.validateEnumOrUnitsLabel
+      ];
+      let msgs = validators.map(f => f()).filter(m => m);
+      return msgs ? msgs[0] : "";
+    },
+    validateItemTypeName() {
+      if (this.itemTypeNameSet.has("")) {
         return "All item types must have nonempty names.";
       }
       if (this.allItemTypes.length !== this.itemTypeNameSet.size) {
         return "All item types must have unique names.";
+      }
+    },
+    validateEnumOrUnitsID() {
+      let itemTypeType = this.itemTypeForm.defn.itemTypeType;
+      let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
+      let itemTypeEnumsOrUnitsIDs = new Set(itemTypeEnumsOrUnits.map(i => i.enumOrUnitID));
+      if (itemTypeEnumsOrUnitsIDs.has("")) {
+        return `All ${itemTypeType} of an item type must have nonempty IDs.`;
+      }
+      if (itemTypeEnumsOrUnits.length !== itemTypeEnumsOrUnitsIDs.size) {
+        return `All ${itemTypeType} of an item type must have unique IDs.`;
+      }
+      return "";
+    },
+    validateEnumOrUnitsLabel() {
+      let itemTypeType = this.itemTypeForm.defn.itemTypeType;
+      let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
+      let itemTypeEnumsOrUnitsLabels = new Set(itemTypeEnumsOrUnits.map(i => i.enumOrUnitLabel));
+      if (itemTypeEnumsOrUnitsLabels.has("")) {
+        return `All ${itemTypeType} of an item type must have nonempty labels.`;
+      }
+      if (itemTypeEnumsOrUnits.length !== itemTypeEnumsOrUnitsLabels.size) {
+        return `All ${itemTypeType} of an item type must have unique labels.`;
       }
       return "";
     },
@@ -197,7 +230,7 @@ export default {
       return tableFields;
     },
     addItemType() {
-      this.validationMsg = this.validateItemTypes();
+      this.validationMsg = this.validateItemTypeForm();
       if (this.validationMsg) {
         return;
       }
@@ -236,7 +269,7 @@ export default {
       return data;
     },
     setEnumUnitEditForm(rowItem) {
-      this.validationMsg = this.validateItemTypes();
+      this.validationMsg = this.validateItemTypeForm();
       if (this.validationMsg) {
         return;
       }
@@ -260,9 +293,9 @@ export default {
 
 <style>
 .center-items-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .edit-item-type-create-enums-or-units-table {
@@ -270,8 +303,7 @@ export default {
 }
 
 .form-b-card-padding {
-  padding: 0.5em
+  padding: 0.5em;
 }
-
 </style>
 
