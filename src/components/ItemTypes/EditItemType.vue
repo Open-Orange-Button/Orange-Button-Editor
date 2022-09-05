@@ -24,7 +24,7 @@
                     .sort(({ item_type: a }, { item_type: b }) => a.localeCompare(b))">
         </b-table>
         <div class="center-items-container">
-          <b-button size="sm" :disabled="submitted" @click="addItemType" variant="primary">Add New Item Type</b-button>
+          <b-button size="sm" :disabled="submitted" @click="addItemType" variant="primary" style="z-index: 0">Add New Item Type</b-button>
         </div>
       </b-form-group>
     </b-card>
@@ -33,7 +33,7 @@
     <b-card class="form-b-card-padding">
       <span tabindex="0" id="remove-item-type-button" class="d-inline-block" style="float: right;">
         <b-button size="sm" :disabled="disableRemoveItemType" variant="danger"
-          @click="removeItemType">Remove Item Type</b-button>
+          @click="setDeletionModalInfo('item type', itemTypeForm.itemTypeName, removeItemType)">Remove Item Type</b-button>
       </span>
       <b-tooltip v-if="disableRemoveItemType" target="remove-item-type-button" placement="bottom">
         Cannot remove this item type because it is used by an OB Element.
@@ -102,12 +102,13 @@
                 <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" :state="data.validator ? data.validator(row.item[key]) : true"/>
               </b-col>
             </b-row>
-            <b-button size="sm" :disabled="submitted" @click="removeEnumOrUnit(row.item)" variant="danger">Remove</b-button>
+            <b-button size="sm" :disabled="submitted" variant="danger"
+              @click="setDeletionModalInfo(formattedItemTypeType.toLowerCase(), row.item.enumOrUnitID, () => removeEnumOrUnit(row.item))">Remove</b-button>
             </b-card>
           </template>
         </b-table>
         <div class="center-items-container" v-if="itemTypeForm.defn.itemTypeType">
-          <b-button size="sm"  :disabled="submitted" @click="addEnumOrUnit" variant="primary">Add New {{ miscUtils.capitalizeFirstChar(itemTypeForm.defn.itemTypeType.slice(0, -1)) }} </b-button>
+          <b-button size="sm"  :disabled="submitted" @click="addEnumOrUnit" variant="primary">Add New {{ formattedItemTypeType }} </b-button>
         </div>
       </b-form>
     </b-card>
@@ -127,6 +128,11 @@
     <div class="center-items-container">
       <b-button variant="danger" @click="exitView" size="sm">Back</b-button>
     </div>
+  <b-modal id="deletion-modal" title="Are you sure?"
+    v-model="deletionModalInfo.showModal"
+    @ok="deletionModalInfo.actionOnConfirm">
+    The {{ deletionModalInfo.typeOfItem }} "{{ deletionModalInfo.nameOfItem }}" will be deleted.
+  </b-modal>
   </div>
 </template>
 
@@ -142,7 +148,6 @@ export default {
   },
   data() {
     return {
-      miscUtils: miscUtilities,
       itemTypeToEdit: "",
       allItemTypes: [],
       itemTypesInUse: new Set(),
@@ -165,7 +170,10 @@ export default {
       submitted: false,
       itemTypeSearchFilter: "",
       validItemTypes: false,
-      validationMsg: ""
+      validationMsg: "",
+      deletionModalInfo: {
+        typeOfItem: "", nameOfItem: "", actionOnConfirm: x => x, showModal: false
+      }
     };
   },
   methods: {
@@ -261,6 +269,9 @@ export default {
     removeEnumOrUnit(rowItem) {
       this.itemTypeForm.defn.itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits.filter(item => item.enumOrUnitID !== rowItem.enumOrUnitID);
     },
+    setDeletionModalInfo(typeOfItem, nameOfItem, actionOnConfirm) {
+      this.deletionModalInfo = { typeOfItem, nameOfItem, actionOnConfirm, showModal: true };
+    },
     loadItemType(itemTypeName, itemTypeDefn) {
       let data = { initialItemTypeName: itemTypeName, itemTypeDescription: itemTypeDefn.description };
 
@@ -323,6 +334,9 @@ export default {
     },
     enumOrUnitLabelCounts() {
       return this.arrItemAppearanceCount(this.allEnumOrUnitLabels);
+    },
+    formattedItemTypeType() {
+      return miscUtilities.capitalizeFirstChar(this.itemTypeForm.defn.itemTypeType.slice(0, -1)) 
     }
   }
 };
