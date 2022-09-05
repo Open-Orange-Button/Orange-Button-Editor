@@ -106,7 +106,7 @@
             </b-card>
           </template>
         </b-table>
-        <div class="center-items-container">
+        <div class="center-items-container" v-if="itemTypeForm.defn.itemTypeType">
           <b-button size="sm"  :disabled="submitted" @click="addEnumOrUnit" variant="primary">Add New {{ miscUtils.capitalizeFirstChar(itemTypeForm.defn.itemTypeType.slice(0, -1)) }} </b-button>
         </div>
       </b-form>
@@ -239,6 +239,10 @@ export default {
       this.itemTypeForm = newItemType;
     },
     addEnumOrUnit() {
+      this.validationMsg = this.validateEnumOrUnitsID();
+      if (this.validationMsg) {
+        return;
+      }
       this.itemTypeForm.defn.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
     },
     removeItemType() {
