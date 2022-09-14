@@ -38,7 +38,7 @@
                       v-model="treeSearchTerm"
                       placeholder="Search concepts... (wildcard: * )"
                     />
-                    <b-form-group label="Search Field:" v-slot="{ ariaDescribedby }">
+                    <b-form-group label="Search Fields:" v-slot="{ ariaDescribedby }">
                       <b-form-radio-group
                         id="tree-search-fields"
                         v-model="searchField"
@@ -70,26 +70,26 @@
                         name="tree-search-modes"
                       >
                         <b-form-radio value="searchNames">
-                          Find By Name
+                          Find Match
                            <v-icon name="info-circle" scale="1" id="tree-search-names" />
                            <b-tooltip target="tree-search-names" triggers="focus hover" placement="right">
-                             Finds concepts whose name matches the search term.
+                             Finds concepts whose search field matches the search term.
                            </b-tooltip>
                         </b-form-radio>
                         <b-form-radio value="searchFindDirect">
                           Find Direct Usage
                           <v-icon name="info-circle" scale="1" id="tree-search-find-direct" />
                           <b-tooltip target="tree-search-find-direct" triggers="focus hover" placement="right">
-                            Finds concepts with a member whose name matches the search term.<br>
-                            Example: Search term "CapacityAC" finds <b>PVSystem</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b>.
+                            Finds concepts with a member whose search field matches the search term.<br>
+                            Example: Concept name "CapacityAC" finds <b>PVSystem</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b>.
                           </b-tooltip>
                         </b-form-radio>
                         <b-form-radio value="searchFindAll">
                           Find All Usage
                            <v-icon name="info-circle" scale="1" id="tree-search-find-all" />
                            <b-tooltip target="tree-search-find-all" triggers="focus hover" placement="right">
-                             Finds concepts with a possibly nested member whose name matches the search term.<br>
-                             Example: Search term "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
+                             Finds concepts with a possibly nested member whose search field matches the search term.<br>
+                             Example: Concept name "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
                            </b-tooltip>
                         </b-form-radio>
                       </b-form-radio-group>
