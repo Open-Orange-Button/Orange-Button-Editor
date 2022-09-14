@@ -354,7 +354,7 @@ export function getAllElementsFlat(file) {
 export function getAllObjectsFlat(file) {
   let allObjectsFlat = [];
   Object.keys(file).forEach(key => {
-    if (!isTaxonomyElement(file, key)) {
+    if (!isTaxonomyElement(file[key])) {
       if (isDefnObj(file, key)) {
         allObjectsFlat.push(key);
       }
@@ -363,8 +363,7 @@ export function getAllObjectsFlat(file) {
   return allObjectsFlat;
 }
 
-export function isTaxonomyElement(file, defnName) {
-  let defn = file[defnName];
+export function isTaxonomyElement(defn) {
   return defn.allOf && defn.allOf.some(defn => defn.$ref && defn.$ref.includes('TaxonomyElement'));
 }
 
@@ -516,7 +515,7 @@ export function getArrayItemType(arrItemRef, loadedFiles, currentFile) {
     file = loadedFiles[fileContext];
   }
 
-  if (isTaxonomyElement(file.file, arrItemDefnName)) {
+  if (isTaxonomyElement(file.file[arrItemDefnName])) {
     arrItemType = "Taxonomy Element";
   } else {
     arrItemType = "Object";
@@ -593,12 +592,11 @@ export function buildSampleJSON({ defnName, fileName, state }) {
   let recurse = ref => buildSampleJSON({ defnName: defnNameFromRef(ref), fileName: fileNameFromRef(ref), state });
   let addSubDefns = refList => refList.sort().forEach(ref => { sampleJSON[defnNameFromRef(ref)] = recurse(ref); });
   if (defn.allOf) { // taxonomy element or has inheritance
-    // a schema definition can only inherit from one other schema definition
-    let inherited = defn.allOf.filter(def => def.$ref)[0];
-    let isTaxonomyElement = inherited.$ref.includes('TaxonomyElement');
-    if (isTaxonomyElement) {
+    if (isTaxonomyElement(defn)) {
       sampleJSON = defn.allOf[1]['x-ob-sample-value'];
     } else {
+      // a schema definition can only inherit from one other schema definition
+      let inherited = defn.allOf.filter(def => def.$ref)[0];
       sampleJSON = recurse(inherited.$ref);
       let refLists = defn.allOf.filter(def => !def.$ref).map(def => Object.values(def.properties).map(v => v.$ref));
       refLists.forEach(list => addSubDefns(list));
@@ -796,8 +794,7 @@ export function defnDetails({ defnName, fileName, state }) {
     detailData.Superclass = defnNameFromRef(inherited.$ref);
     detailData.Documentation = getDocumentation(noninherited);
     detailData.Type = noninherited.type;
-    let isTaxonomyElement = detailData.Superclass.includes('TaxonomyElement');
-    if (!isTaxonomyElement) {
+    if (!isTaxonomyElement(defn)) {
       detailData.Children = propertyListStr(noninherited);
     }
   } else if (defn.properties) { // no inheritance
@@ -843,19 +840,5 @@ export function findDefnUsages({ defnNameSet, file }) {
     }
   }
   return usages;
-}
-
-export function getAllTaxonomyElements(file) {
-  let allTaxonomyElements = {};
-  for (let [name, defn] of Object.entries(file)) {
-    if (defn.allOf) {
-      let inherited = defn.allOf.filter(def => def.$ref)[0];
-      let isTaxonomyElement = inherited.$ref.includes('TaxonomyElement');
-      if (isTaxonomyElement) {
-        allTaxonomyElements[name] = defn;
-      }
-    }
-  }
-  return allTaxonomyElements;
 }
 

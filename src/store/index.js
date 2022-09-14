@@ -521,9 +521,9 @@ export default new Vuex.Store({
         return finalEdittedItemTypeObj;
       }
       let allItemTypes = {};
-      let allTaxonomyElements = miscUtilities.getAllTaxonomyElements(state.currentFile.file);
-      let itemTypeToTaxonomyElement = Object.entries(allTaxonomyElements)
-        .map(([name, defn]) => [name, defn.allOf[1]["x-ob-item-type"]])
+      let allTaxonomyElements = Object.entries(state.currentFile.file).filter(([_, defn]) => miscUtilities.isTaxonomyElement(defn));
+      let allTaxonomyElementsMap = allTaxonomyElements.reduce((result, [name, defn]) => { result[name] = defn; return result });
+      let itemTypeToTaxonomyElement = allTaxonomyElements.map(([name, defn]) => [name, defn.allOf[1]["x-ob-item-type"]])
         .reduce((result, [name, itemTypeName]) => {
           if (!result[itemTypeName]) {
             result[itemTypeName] = new Set();
@@ -535,7 +535,7 @@ export default new Vuex.Store({
         allItemTypes[formItemType.itemTypeName] = buildItemTypeDefn(formItemType.defn);
         if (formItemType.itemTypeName !== formItemType.defn.initialItemTypeName) {
           for (let taxonomyElementName of itemTypeToTaxonomyElement[formItemType.defn.initialItemTypeName]) {
-            allTaxonomyElements[taxonomyElementName].allOf[1]["x-ob-item-type"] = formItemType.itemTypeName;
+            allTaxonomyElementsMap[taxonomyElementName].allOf[1]["x-ob-item-type"] = formItemType.itemTypeName;
           }
         }
       }

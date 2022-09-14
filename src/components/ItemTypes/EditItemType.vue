@@ -143,8 +143,9 @@ export default {
     let state = this.$store.state;
     this.allItemTypes = Object.entries(state.loadedFiles[state.selectedFileName].item_types)
       .map(([itemTypeName, defn]) => ({ itemTypeName, defn: this.loadItemType(itemTypeName, defn) }));
-    this.itemTypesInUse = new Set(Object.values(miscUtilities.getAllTaxonomyElements(this.$store.state.currentFile.file))
-      .map(defn => defn.allOf[1]["x-ob-item-type"]));
+    this.itemTypesInUse = new Set(Object.entries(this.$store.state.currentFile.file)
+      .filter(([_, defn]) => miscUtilities.isTaxonomyElement(defn))
+      .map(([_, defn]) => defn.allOf[1]["x-ob-item-type"]));
   },
   data() {
     return {
@@ -211,7 +212,7 @@ export default {
       if (this.enumOrUnitIDCounts[""]) {
         return `All ${itemTypeType} of an item type must have nonempty IDs.`;
       }
-      if (Object.values(this.enumOrUnitIDCounts).every(c => c === 1)) {
+      if (!Object.values(this.enumOrUnitIDCounts).every(c => c === 1)) {
         return `All ${itemTypeType} of an item type must have unique IDs.`;
       }
       return "";
@@ -222,7 +223,7 @@ export default {
       if (this.enumOrUnitLabelCounts[""]) {
         return `All ${itemTypeType} of an item type must have nonempty IDs.`;
       }
-      if (Object.values(this.enumOrUnitLabelCounts).every(c => c === 1)) {
+      if (!Object.values(this.enumOrUnitLabelCounts).every(c => c === 1)) {
         return `All ${itemTypeType} of an item type must have unique IDs.`;
       }
       return "";
