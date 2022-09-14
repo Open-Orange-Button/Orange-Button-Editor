@@ -38,6 +38,30 @@
                       v-model="treeSearchTerm"
                       placeholder="Search concepts... (wildcard: * )"
                     />
+                    <b-form-group label="Search Field:" v-slot="{ ariaDescribedby }">
+                      <b-form-radio-group
+                        id="tree-search-fields"
+                        v-model="searchField"
+                        :aria-describedby="ariaDescribedby"
+                        name="tree-search-fields"
+                      >
+                        <b-form-radio value="searchFieldName">
+                           Concept Name
+                           <v-icon name="info-circle" scale="1" id="search-field-concept-name" />
+                           <b-tooltip target="search-field-concept-name" triggers="focus hover" placement="right">
+                             Search OB concepts by their name.
+                           </b-tooltip>
+                        </b-form-radio>
+                        <b-form-radio value="searchFieldItemType">
+                           Item Type
+                           <v-icon name="info-circle" scale="1" id="search-field-element-item-type" />
+                           <b-tooltip target="search-field-element-item-type" triggers="focus hover" placement="right">
+                             Search OB elements by their item type.<br>
+                             Note: Only OB elements have an item type.
+                           </b-tooltip>
+                        </b-form-radio>
+                      </b-form-radio-group>
+                    </b-form-group>
                     <b-form-group label="Search Modes:" v-slot="{ ariaDescribedby }">
                       <b-form-radio-group
                         id="tree-search-modes"
@@ -68,20 +92,12 @@
                              Example: Search term "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
                            </b-tooltip>
                         </b-form-radio>
-                        <b-form-radio value="searchItemTypeUsage">
-                          Find Item Type Usage
-                           <v-icon name="info-circle" scale="1" id="tree-search-find-all" />
-                           <b-tooltip target="tree-search-find-all" triggers="focus hover" placement="right">
-                             Finds OB elements whose item type matches the search term.<br>
-                             Example: Search term "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
-                           </b-tooltip>
-                        </b-form-radio>
                       </b-form-radio-group>
                     </b-form-group>
                   </div>
                 </div>
                 <span :key="$store.state.refreshKey">
-                  <span v-for="arr in sortedObjects">
+                  <span v-for="arr in sortedObjects" v-bind:key="arr.defnName">
                     <!-- obj node -->
                     <UploadOBTree
                       v-if="arr.nodeType == 'Object'"
@@ -531,9 +547,8 @@ export default {
       treeSearchTerm: "",
       GitHubTaxonomyUser: "https://github.com/Open-Orange-Button/Orange-Button-Taxonomy/blob/main/Master-OB-OpenAPI.json",
       GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
+      searchField: "searchFieldName",
       searchMode: "searchNames",
-      searchModes: [{ value: "searchNames", text: "Find By Name" }, { value: "searchFindDirect", text: "Find Direct Usage" },
-                    { value: "searchFindAll", text: "Find All Usage" }, { value: "searchItemTypeUsage", text: "Find Item Type Usage" }],
       latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}],
       searchDefnUsages: false,
       searchDefnUsagesNested: false
@@ -949,10 +964,9 @@ export default {
       let allNameDefnPairs = allDefnMaps.map(Object.entries).flat();
 
       // field to filter by in search
-      let searchField = ([name, _]) => name;
-      let searchItemTypeUsage = this.searchMode === 'searchItemTypeUsage';
-      if (searchItemTypeUsage) {
-        searchField = ([_, defn]) => defn.nodeType === 'TaxonomyElement' ? defn.subClass_obj['x-ob-item-type'] : '';
+      let getSearchField = ([name, _]) => name;
+      if (this.searchField === 'searchFieldItemType') {
+        getSearchField = ([_, defn]) => defn.nodeType === 'TaxonomyElement' ? defn.subClass_obj['x-ob-item-type'] : '';
       }
 
       // filter modes
@@ -962,7 +976,7 @@ export default {
 
       // perform the filtering by the search term
       let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
-      let defnsToShowKeys = new Set(allNameDefnPairs.filter(pair => defnFilter(searchField(pair))).map(([name, _]) => name));
+      let defnsToShowKeys = new Set(allNameDefnPairs.filter(pair => defnFilter(getSearchField(pair))).map(([name, _]) => name));
 
       // post-filtering search results processing
       let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
