@@ -68,6 +68,14 @@
                              Example: Search term "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
                            </b-tooltip>
                         </b-form-radio>
+                        <b-form-radio value="searchItemTypeUsage">
+                          Find Item Type Usage
+                           <v-icon name="info-circle" scale="1" id="tree-search-find-all" />
+                           <b-tooltip target="tree-search-find-all" triggers="focus hover" placement="right">
+                             Finds OB elements whose item type matches the search term.<br>
+                             Example: Search term "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
+                           </b-tooltip>
+                        </b-form-radio>
                       </b-form-radio-group>
                     </b-form-group>
                   </div>
@@ -525,7 +533,7 @@ export default {
       GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
       searchMode: "searchNames",
       searchModes: [{ value: "searchNames", text: "Find By Name" }, { value: "searchFindDirect", text: "Find Direct Usage" },
-                    { value: "searchFindAll", text: "Find All Usage" }],
+                    { value: "searchFindAll", text: "Find All Usage" }, { value: "searchItemTypeUsage", text: "Find Item Type Usage" }],
       latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}],
       searchDefnUsages: false,
       searchDefnUsagesNested: false
@@ -938,16 +946,29 @@ export default {
       }
 
       let allDefnMaps = [obj_map, el_map, immutable_map, arr_map];
-      let allDefnKeys = allDefnMaps.map(Object.keys).flat();
-      let filterByWildcard = k => miscUtilities.wildcardSearch(k.toLowerCase(), this.treeSearchTerm.toLowerCase());
+      let allNameDefnPairs = allDefnMaps.map(Object.entries).flat();
+
+      // field to filter by in search
+      let searchField = ([name, _]) => name;
+      let searchItemTypeUsage = this.searchMode === 'searchItemTypeUsage';
+      if (searchItemTypeUsage) {
+        searchField = ([_, defn]) => defn.nodeType === 'TaxonomyElement' ? defn.subClass_obj['x-ob-item-type'] : '';
+      }
+
+      // filter modes
+      let filterByWildcard = s => miscUtilities.wildcardSearch(s.toLowerCase(), this.treeSearchTerm.toLowerCase());
       let viewObjsSet = new Set(this.$store.state.viewObjs);
-      let filterByViewObj = k => viewObjsSet.has(k);
+      let filterByViewObj = s => viewObjsSet.has(s);
+
+      // perform the filtering by the search term
       let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
-      let defnsToShowKeys = new Set([...allDefnKeys.filter(defnFilter)]);
+      let defnsToShowKeys = new Set(allNameDefnPairs.filter(pair => defnFilter(searchField(pair))).map(([name, _]) => name));
+
+      // post-filtering search results processing
+      let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
       let searchFindDirect = this.searchMode === 'searchFindDirect';
       let searchFindAll = this.searchMode === 'searchFindAll';
       if (searchFindDirect || searchFindAll) {
-        let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
         let usages = miscUtilities.findDefnUsages({ defnNameSet: defnsToShowKeys, file });
         usages.forEach(k => defnsToShowKeys.add(k));
         if (searchFindAll) {
@@ -957,6 +978,8 @@ export default {
           }
         }
       }
+
+      // prepare results for display
       let getDefnsInMap = defnMap => [...defnsToShowKeys].map(k => defnMap[k]).filter(Boolean);
       let defnsToShow = allDefnMaps.map(getDefnsInMap);
       defnsToShow.forEach(defns => defns.sort(sortByDefnName));
