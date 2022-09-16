@@ -48,7 +48,7 @@
             id="input-edit-item-type-item-type-description"
             v-model="itemTypeForm.itemTypeName"
             :disabled="submitted"
-            :state="!Boolean(validateItemTypeName())"
+            :state="!Boolean(validateAndSetValidationMsg(validateItemTypeName))"
           ></b-form-input>
         </b-form-group>
 
@@ -99,7 +99,7 @@
                 <label :for="`row-details-${data.label}`">{{ data.label }}:</label>
               </b-col>
               <b-col>
-                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" :state="data.validator ? data.validator(row.item[key]) : true"/>
+                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" :state="data.validator ? validateAndSetValidationMsg(() => data.validator(row.item[key])) : true"/>
               </b-col>
             </b-row>
             <b-button size="sm" :disabled="submitted" variant="danger"
@@ -130,8 +130,14 @@
     </div>
   <b-modal id="deletion-modal" title="Are you sure?"
     v-model="deletionModalInfo.showModal"
-    @ok="deletionModalInfo.actionOnConfirm">
+    @ok="deletionModalInfo.actionOnConfirm"
+  >
     The {{ deletionModalInfo.typeOfItem }} "{{ deletionModalInfo.nameOfItem }}" will be deleted.
+  </b-modal>
+  <b-modal id="validation-error-modal" title="Validation error"
+    v-model="showValidationModal"
+  >
+    {{ validationMsg }}
   </b-modal>
   </div>
 </template>
@@ -172,6 +178,14 @@ export default {
       itemTypeSearchFilter: "",
       validItemTypes: false,
       validationMsg: "",
+      showValidationModal: false,
+      itemTypeValidators: [ // in order of importance
+        this.validateItemTypeName
+      ],
+      enumOrUnitValidators: [ // in order of importance
+        this.validateAllEnumOrUnitIDs,
+        this.validateAllEnumOrUnitLabels
+      ],
       deletionModalInfo: {
         typeOfItem: "", nameOfItem: "", actionOnConfirm: x => x, showModal: false
       }
@@ -181,6 +195,7 @@ export default {
     onSubmit() {
       this.validationMsg = this.validateItemTypeForm();
       if (this.validationMsg) {
+        this.showValidationModal = true;
         return;
       }
       this.submitted = true;
@@ -191,9 +206,8 @@ export default {
         return "";
       }
       let validators = [
-        this.validateItemTypeName,
-        this.validateAllEnumOrUnitIDs,
-        this.validateAllEnumOrUnitLabels
+        ...this.itemTypeValidators,
+        ...this.enumOrUnitValidators
       ];
       let msgs = validators.map(f => f()).filter(m => m);
       return msgs ? msgs[0] : "";
@@ -221,10 +235,10 @@ export default {
       let itemTypeType = this.itemTypeForm.defn.itemTypeType;
       let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
       if (this.enumOrUnitLabelCounts[""]) {
-        return `All ${itemTypeType} of an item type must have nonempty IDs.`;
+        return `All ${itemTypeType} of an item type must have nonempty labels.`;
       }
       if (!Object.values(this.enumOrUnitLabelCounts).every(c => c === 1)) {
-        return `All ${itemTypeType} of an item type must have unique IDs.`;
+        return `All ${itemTypeType} of an item type must have unique labels.`;
       }
       return "";
     },
@@ -238,6 +252,11 @@ export default {
       let uniqueLabel = Boolean(this.enumOrUnitLabelCounts[label]) && this.enumOrUnitLabelCounts[label] === 1;
       return nonemptyLabel && uniqueLabel;
     },
+    validateAndSetValidationMsg(validator) {
+      return validator();
+      // this.validationMsg = validator();
+      // return this.validationMsg;
+    },
     exitView() {
       this.$store.commit("showView", { viewType: "ItemType", viewName: null });
     },
@@ -249,6 +268,7 @@ export default {
     addItemType() {
       this.validationMsg = this.validateItemTypeForm();
       if (this.validationMsg) {
+        this.showValidationModal = true;
         return;
       }
       let newItemType = { itemTypeName: "", defn: this.loadItemType("", { description: "" }) };
@@ -256,8 +276,10 @@ export default {
       this.itemTypeForm = newItemType;
     },
     addEnumOrUnit() {
-      this.validationMsg = this.validateAllEnumOrUnitIDs();
+      // check validators in order of importance, and return the first error message
+      this.validationMsg = this.enumOrUnitValidators.reduce((msg, validator) => (msg || validator()), "");
       if (this.validationMsg) {
+        this.showValidationModal = true;
         return;
       }
       this.itemTypeForm.defn.itemTypeEnumsOrUnits.push({ enumOrUnitID: "", enumOrUnitLabel: "", enumOrUnitDescription: "" });
@@ -295,17 +317,18 @@ export default {
     setEnumUnitEditForm(rowItem) {
       this.validationMsg = this.validateItemTypeForm();
       if (this.validationMsg) {
+        this.showValidationModal = true;
         return;
       }
       this.itemTypeForm = this.allItemTypes.filter(i => i.itemTypeName === rowItem.item_type)[0];
     },
     arrItemAppearanceCount(arr) {
       return arr.reduce((counts, item) => {
-        if (!arr[item]) {
-          arr[item] = 0;
+        if (!counts[item]) {
+          counts[item] = 0;
         }
-        arr[item] += 1;
-        return arr;
+        counts[item] += 1;
+        return counts;
       }, {});
     }
   },
