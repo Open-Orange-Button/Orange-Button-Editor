@@ -511,7 +511,7 @@ export default new Vuex.Store({
         let finalEdittedItemTypeObj = { description: itemTypeDescription };
         let finalEnumsOrUnits = {};
 
-        for (let { enumOrUnitID: id, enumOrUnitID: label, enumOrUnitDescription: description } of itemTypeEnumsOrUnits) {
+        for (let { enumOrUnitID: id, enumOrUnitLabel: label, enumOrUnitDescription: description } of itemTypeEnumsOrUnits) {
           finalEnumsOrUnits[id] = { label, description }
         }
 
@@ -533,7 +533,7 @@ export default new Vuex.Store({
         }, {});
       for (let formItemType of payload) {
         allItemTypes[formItemType.itemTypeName] = buildItemTypeDefn(formItemType.defn);
-        if (formItemType.itemTypeName !== formItemType.defn.initialItemTypeName) {
+        if (formItemType.defn.initialItemType && formItemType.itemTypeName !== formItemType.defn.initialItemTypeName) {
           for (let taxonomyElementName of itemTypeToTaxonomyElement[formItemType.defn.initialItemTypeName]) {
             allTaxonomyElementsMap[taxonomyElementName].allOf[1]["x-ob-item-type"] = formItemType.itemTypeName;
           }

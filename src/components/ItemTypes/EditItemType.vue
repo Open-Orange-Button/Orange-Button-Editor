@@ -99,7 +99,7 @@
                 <label :for="`row-details-${data.label}`">{{ data.label }}:</label>
               </b-col>
               <b-col>
-                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" :state="data.validator ? !Boolean(data.validator()) : true"/>
+                <b-form-input :id="`row-details-${data.label}`" v-model="row.item[key]" :state="data.validator ? !Boolean(data.validator(row.item[key])) : true"/>
               </b-col>
             </b-row>
             <b-button size="sm" :disabled="submitted" variant="danger"
@@ -216,40 +216,55 @@ export default {
         return `The item type name '${badCaseConventionItemTypeNames[0]}' must follow the upper camel case convention with all-caps acronyms.`;
       }
     },
-    validateAllEnumOrUnitIDs() {
+    validateAllEnumOrUnitIDs(specificID /* this is an optional parameter */) {
+      let msg = "";
+      let setMsg = str => (msg = msg || str);
       let itemTypeType = this.itemTypeForm.defn.itemTypeType;
       let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
       let sentenceStart = itemTypeType === "enums" ? "An enum" : "A unit";
       if (this.enumOrUnitIDCounts[""]) {
-        return `${sentenceStart} of an item type must have a nonempty ID.`;
+        setMsg(`${sentenceStart} of an item type must have a nonempty ID.`);
       }
       let duplicateIDs = Object.entries(this.enumOrUnitIDCounts).filter(([_, count]) => count > 1)
         .map(([id, _]) => id);
       if (duplicateIDs.length) {
-        return `${sentenceStart} with ID '${duplicateIDs[0]}' already exists for this item type.`
+        setMsg(`${sentenceStart} with ID '${duplicateIDs[0]}' already exists for this item type.`);
       }
-      if (itemTypeType === "enums") {
-        let badCaseConventionIDs = Object.keys(this.enumOrUnitIDCounts).filter(k => !this.isUpperCaseK8sCamelCase(k));
-        if (badCaseConventionIDs.length) {
-          return `The enum '${badCaseConventionIDs[0]}' must follow the upper camel case convention with all-caps acronyms.`;
-        }
+      let badCaseConventionIDs = Object.keys(this.enumOrUnitIDCounts)
+        .filter(_ => itemTypeType === "enums") // only enforce case convention for enum IDs
+        .filter(k => !this.isUpperCaseK8sCamelCase(k));
+      if (badCaseConventionIDs.length) {
+        setMsg(`The enum '${badCaseConventionIDs[0]}' must follow the upper camel case convention with all-caps acronyms.`);
       }
-      return "";
+      if (!specificID) {
+        return msg;
+      }
+      return [
+        ...duplicateIDs,
+        ...badCaseConventionIDs,
+      ].includes(specificID) ? msg : "";
     },
-    validateAllEnumOrUnitLabels() {
+    validateAllEnumOrUnitLabels(specificLabel /* this is an optional parameter */) {
+      let msg = "";
+      let setMsg = str => (msg = msg || str);
       let itemTypeType = this.itemTypeForm.defn.itemTypeType;
       let itemTypeEnumsOrUnits = this.itemTypeForm.defn.itemTypeEnumsOrUnits;
       let sentenceStart = itemTypeType === "enums" ? "An enum" : "A unit";
       // allowing empty labels for now
       // if (this.enumOrUnitLabelCounts[""]) {
-      //   return `${sentenceStart} of an item type must have a nonempty label.`;
+      //   setMsg(`${sentenceStart} of an item type must have a nonempty label.`);
       // }
       let duplicateLabels = Object.entries(this.enumOrUnitLabelCounts).filter(([_, count]) => count > 1)
         .map(([label, _]) => label);
       if (duplicateLabels.length) {
-        return `${sentenceStart} with label '${duplicateLabels[0]}' already exists for this item type.`
+        setMsg(`${sentenceStart} with label '${duplicateLabels[0]}' already exists for this item type.`);
       }
-      return "";
+      if (!specificLabel) {
+        return msg;
+      }
+      return [
+        ...duplicateLabels
+      ].includes(specificLabel) ? msg : "";
     },
     exitView() {
       this.$store.commit("showView", { viewType: "ItemType", viewName: null });
