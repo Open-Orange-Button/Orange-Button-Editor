@@ -253,7 +253,8 @@ export default {
       //   return `${sentenceStart} of an item type must have a nonempty label.`;
       // }
       let duplicateLabels = Object.entries(counts).filter(([_, count]) => count > 1)
-        .map(([label, _]) => label);
+        .map(([label, _]) => label)
+        .filter(label => label !== ""); // since empty labels are allowed for now
       if (duplicateLabels.length) {
         return `${sentenceStart} with label '${duplicateLabels[0]}' already exists for this item type.`;
       }
