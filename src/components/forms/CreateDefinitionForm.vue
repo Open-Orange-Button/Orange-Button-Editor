@@ -263,7 +263,7 @@ export default {
       this.definitionDescription = null;
       this.selectedOBItemType = null;
       this.preSubmit = true;
-      this.$store.commit("showNoView");
+      this.$store.commit("showView", { viewType: "Editor", viewName: null });
     },
     validateForm() {
       if(!this.definitionType) {

@@ -110,8 +110,7 @@
                 </div>
             </span>
         </div>          
-        <div class="line-break">
-        </div>          
+        <br>
         <div class="center-items-container">
             <b-button variant="danger" @click="exitView" size="sm">Back</b-button>
         </div>
@@ -163,7 +162,7 @@ export default {
     },
     methods: {
         exitView() {
-            this.$store.commit("showNoItemTypesViews")
+          this.$store.commit("showView", { viewType: "ItemType", viewName: null });
         },
         getBaseItemType(itemTypeRef) {
             return itemTypeRef.slice(itemTypeRef.lastIndexOf('/') + 1)
@@ -338,5 +337,10 @@ export default {
 </script>
 
 <style>
+.center-items-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
 </style>

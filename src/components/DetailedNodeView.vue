@@ -173,7 +173,7 @@ export default {
       }
     },
     showEditNodeView() {
-      this.$store.commit("showEditNodeView");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "EditDefinition", selectDefinitionNode: true });
     }
   },
   watch: {
@@ -359,83 +359,28 @@ export default {
       return arr;
     },
     itemTypeEnumsOrUnitsDetails() {
-      if (this.nodeEnumsOrUnitsObj) {
-        let ret_units_table = []
-        let enumOrUnitID = null
-        let enumOrUnitLabel = null
-        let enumOrUnitDescription = null
-
-        if (this.nodeEnumsOrUnitsObj['units']) {
-          for (let i in this.nodeEnumsOrUnitsObj['units']) {
-            enumOrUnitID = i
-            enumOrUnitLabel = this.nodeEnumsOrUnitsObj['units'][i]['label']
-            enumOrUnitDescription = this.nodeEnumsOrUnitsObj['units'][i]['description']
-            let tmp_obj = {
-                "enumOrUnitID": enumOrUnitID, 
-                "enumOrUnitLabel": enumOrUnitLabel          }
-            ret_units_table.push(tmp_obj)
-          }
-        } else if (this.nodeEnumsOrUnitsObj['enums']) {
-          for (let i in this.nodeEnumsOrUnitsObj['enums']) {
-            enumOrUnitID = i
-            enumOrUnitLabel = this.nodeEnumsOrUnitsObj['enums'][i]['label']
-            enumOrUnitDescription = this.nodeEnumsOrUnitsObj['enums'][i]['description']
-            let tmp_obj = {
-                "enumOrUnitID": enumOrUnitID, 
-                "enumOrUnitLabel": enumOrUnitLabel          
-            }
-            ret_units_table.push(tmp_obj)
-          }
-
-        } 
-        return ret_units_table
+      let defn = this.nodeEnumsOrUnitsObj;
+      if (!defn) {
+        return [];
       }
+      let itemTypeType = defn.enums ? "enums" : "units";
+      return Object.entries(defn[itemTypeType]).map(([id, { label, description }]) => ({
+        enumOrUnitID: id,
+        enumOrUnitLabel: label,
+        enumOrUnitDescription: description
+      }));
     },
     itemTypeGroupEnumsOrUnitsDetails() {
-      if (this.nodeOBItemTypeGroupGroupObj) {
-        let ret_units_table = []
-        let enumOrUnitID = null
-        let enumOrUnitLabel = null
-        let enumOrUnitDescription = null
-        let groupFilter = this.nodeOBItemTypeGroupGroupObj['group']
-
-        if (this.nodeEnumsOrUnitsObj['units']) {
-          for (let i in this.nodeEnumsOrUnitsObj['units']) {
-            if (groupFilter.includes(i)) {
-              enumOrUnitID = i
-              enumOrUnitLabel = this.nodeEnumsOrUnitsObj['units'][i]['label']
-              enumOrUnitDescription = this.nodeEnumsOrUnitsObj['units'][i]['description']
-              let tmp_obj = {
-                  "enumOrUnitID": enumOrUnitID, 
-                  "enumOrUnitLabel": enumOrUnitLabel          
-              }
-              ret_units_table.push(tmp_obj)
-            }
-          }
-        } else if (this.nodeEnumsOrUnitsObj['enums']) {
-          for (let i in this.nodeEnumsOrUnitsObj['enums']) {
-            if (groupFilter.includes(i)) {
-              enumOrUnitID = i
-              enumOrUnitLabel = this.nodeEnumsOrUnitsObj['enums'][i]['label']
-              enumOrUnitDescription = this.nodeEnumsOrUnitsObj['enums'][i]['description']
-              let tmp_obj = {
-                  "enumOrUnitID": enumOrUnitID, 
-                  "enumOrUnitLabel": enumOrUnitLabel          
-              }
-              ret_units_table.push(tmp_obj)              
-            }
-          }
-        }
-        return ret_units_table
-      }      
+      let defn = this.nodeOBItemTypeGroupGroupObj;
+      if (!defn) {
+        return [];
+      }
+      let group = new Set(defn.group);
+      return this.itemTypeEnumsOrUnitsDetails.filter(({ enumOrUnitID }) => group.has(enumOrUnitID));
     },
     returnItemTypeEnumsOrUnitsFields() {
-        if (this.ItemTypeType == 'enums') {
-            return this.enumFields
-        } else if (this.ItemTypeType == 'units') {
-            return this.unitFields
-        }
-    }    
+       return this.ItemTypeType == "enums" ? this.enumFields : this.unitFields;
+    }
   }
 };
 </script>

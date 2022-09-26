@@ -69,6 +69,7 @@ export default new Vuex.Store({
     activeEditingView: "EditDefinitionFormDisabled",
     // right pane state for views
     activeEditorView: null,
+    forcedFocusViews: new Set(["EditItemType", "EditItemTypeGroup"]),
     // view state for Item Types Editor
     activeItemTypesView: null,
 
@@ -364,54 +365,22 @@ export default new Vuex.Store({
     /*
       Editor view handling
     */
-    showDetailedView(state) {
-      state.activeEditorView = "DetailedNodeView"
-    },
-    showEditNodeView(state) {
-      state.activeEditorView = "EditDefinition"
-      state.selectDefinitionNode = true;
-    },
-    showCreateDefinitionForm(state) {
-      state.activeEditorView = "CreateDefinitionForm"
-    },
-    showLoadInDefinitionForm(state) {
-      state.activeEditorView = "LoadInDefinition"
-    },
-    showEditItemTypesMain(state) {
-      state.activeEditorView = "EditItemTypesMain"
-    },
-    showNoView(state) {
-      state.activeEditorView = null
-    },
-
-    // show state for Item Types Editor
-    // todo: consolidate into one function you pass the string to
-    showCreateItemType(state) {
-      state.activeItemTypesView = "CreateItemType"
-    },
-    showCreateItemTypeGroup(state) {
-      state.activeItemTypesView = "CreateItemTypeGroup"
-    },
-    showEditItemType(state) {
-      state.activeItemTypesView = "EditItemType"
-    },
-    showEditItemTypeGroup(state) {
-      state.activeItemTypesView = "EditItemTypeGroup"
-    },
-    showViewAllItemTypes(state) {
-      state.activeItemTypesView = "ViewAllItemTypes"
-    },
-    showViewAllItemTypeGroups(state) {
-      state.activeItemTypesView = "ViewAllItemTypeGroups"
-    },
-    showNoItemTypesViews(state) {
-      state.activeItemTypesView = null
-    },
-    showDeleteItemType(state) {
-      state.activeItemTypesView = "DeleteItemType"
-    },
-    showDeleteItemTypeGroup(state) {
-      state.activeItemTypesView = "DeleteItemTypeGroup"
+    showView(state, { viewType /* 'Editor' or 'ItemType' */, viewName, selectDefinitionNode }) {
+      // let inForcedFocusView = [
+      //   state.activeEditorView,
+      //   state.activeItemTypesView
+      // ].some(v => state.forcedFocusViews.has(v));
+      // if (inForcedFocusView) {
+      //   return;
+      // }
+      if (viewType === "Editor") {
+        state.activeEditorView = viewName;
+      } else if (viewType === "ItemType") {
+        state.activeItemTypesView = viewName;
+      }
+      if (selectDefinitionNode) {
+        state.selectedDefinitionNode = selectDefinitionNode;
+      }
     },
     /* 
       JSON file handling
@@ -522,47 +491,55 @@ export default new Vuex.Store({
 
       Vue.set(state.currentFile.file, payload.definitionName, defn_attr);
     },
-    createItemType(state, payload) {
-      let finalItemTypeObj = {}
-      let finalEnumsOrUnits = {}
-      finalItemTypeObj['description'] = payload.itemTypeDescription
+    // sets an item type in the definiton file under obj 'x-ob-item-type'
+    setItemTypeDefn(state, payload) {
+      let finalEdittedItemTypeObj = { description: payload.itemTypeDescription };
+      let finalEnumsOrUnits = {};
 
-      payload.itemTypeEnumsOrUnits.forEach( enumOrUnitObj => {
-        finalEnumsOrUnits[enumOrUnitObj['enumOrUnitID']] = {
-          "label": enumOrUnitObj['enumOrUnitLabel'],
-          "description": enumOrUnitObj['enumOrUnitDescription']
-        }
-      })
+      for (let { enumOrUnitID: id, enumOrUnitID: label, enumOrUnitDescription: description } of payload.itemTypeEnumsOrUnits) {
+        finalEnumsOrUnits[id] = { label, description }
+      }
 
-      if (payload.itemTypeType == 'units') {
-        finalItemTypeObj['units'] = finalEnumsOrUnits
-      } else if (payload.itemTypeType == 'enums') {
-        finalItemTypeObj['enums'] = finalEnumsOrUnits
+      if (payload.itemTypeType) {
+        finalEdittedItemTypeObj[payload.itemTypeType] = finalEnumsOrUnits;
       } // else no units or enums defined
 
-      Vue.set(state.currentFile.item_types, payload.itemTypeName, finalItemTypeObj)
-
-    },
-    // edits the item type in the definiton file under obj 'x-ob-item-type'
-    editItemTypeDefn(state, payload) {
-      let finalEdittedItemTypeObj = {}
-      let finalEnumsOrUnits = {}
-
-      finalEdittedItemTypeObj['description'] = payload.itemTypeDescription
-      payload.itemTypeEnumsOrUnits.forEach( enumOrUnitObj => {
-        finalEnumsOrUnits[enumOrUnitObj['enumOrUnitID']] = {
-          "label": enumOrUnitObj['enumOrUnitLabel'],
-          "description": enumOrUnitObj['enumOrUnitDescription']
-        }
-      })
-
-      if (payload.itemTypeType == 'units') {
-        finalEdittedItemTypeObj['units'] = finalEnumsOrUnits
-      } else if (payload.itemTypeType == 'enums') {
-        finalEdittedItemTypeObj['enums'] = finalEnumsOrUnits
-      } // else no units or enums defined
       Vue.set(state.currentFile.item_types, payload.itemTypeName, finalEdittedItemTypeObj)
+    },
+    setItemTypes(state, payload) {
+      let buildItemTypeDefn = ({ itemTypeDescription, itemTypeEnumsOrUnits, itemTypeType }) => {
+        let finalEdittedItemTypeObj = { description: itemTypeDescription };
+        let finalEnumsOrUnits = {};
 
+        for (let { enumOrUnitID: id, enumOrUnitLabel: label, enumOrUnitDescription: description } of itemTypeEnumsOrUnits) {
+          finalEnumsOrUnits[id] = { label, description }
+        }
+
+        if (itemTypeType) {
+          finalEdittedItemTypeObj[itemTypeType] = finalEnumsOrUnits;
+        } // else no units or enums defined
+        return finalEdittedItemTypeObj;
+      }
+      let allItemTypes = {};
+      let allTaxonomyElements = Object.entries(state.currentFile.file).filter(([_, defn]) => miscUtilities.isTaxonomyElement(defn));
+      let allTaxonomyElementsMap = allTaxonomyElements.reduce((result, [name, defn]) => { result[name] = defn; return result });
+      let itemTypeToTaxonomyElement = allTaxonomyElements.map(([name, defn]) => [name, defn.allOf[1]["x-ob-item-type"]])
+        .reduce((result, [name, itemTypeName]) => {
+          if (!result[itemTypeName]) {
+            result[itemTypeName] = new Set();
+          }
+          result[itemTypeName].add(name);
+          return result;
+        }, {});
+      for (let formItemType of payload) {
+        allItemTypes[formItemType.itemTypeName] = buildItemTypeDefn(formItemType.defn);
+        if (formItemType.defn.initialItemTypeName && formItemType.itemTypeName !== formItemType.defn.initialItemTypeName) {
+          for (let taxonomyElementName of itemTypeToTaxonomyElement[formItemType.defn.initialItemTypeName]) {
+            allTaxonomyElementsMap[taxonomyElementName].allOf[1]["x-ob-item-type"] = formItemType.itemTypeName;
+          }
+        }
+      }
+      Vue.set(state.currentFile, 'item_types', allItemTypes);
     },
     createItemTypeGroup(state, payload) {
       let finalItemTypeGroupObj = {}

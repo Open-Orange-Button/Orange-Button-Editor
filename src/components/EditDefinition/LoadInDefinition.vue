@@ -82,7 +82,7 @@ export default {
   },
   methods: {
     exitView() {
-      this.$store.commit("showNoView");
+      this.$store.commit("showView", { viewType: "Editor", viewName: null });
     },
     selectDefn(index, name) {
       this.selectedDefnIndex = index;

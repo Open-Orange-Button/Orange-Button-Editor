@@ -31,9 +31,7 @@
                 </template>
             </b-table>
         </div>
-        <div class="line-break">
-
-        </div>
+        <br>
         <div class="back-btn-container">
             <b-button variant="danger" @click="exitView" size="sm">Back</b-button>
         </div>
@@ -67,7 +65,7 @@ export default {
     },
     methods: {
         exitView() {
-            this.$store.commit("showNoItemTypesViews")
+          this.$store.commit("showView", { viewType: "ItemType", viewName: null });
         },
         getBaseItemType(itemTypeRef) {
             return itemTypeRef.slice(itemTypeRef.lastIndexOf('/') + 1)

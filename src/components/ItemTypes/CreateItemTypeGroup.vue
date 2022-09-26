@@ -115,8 +115,7 @@
                 </div>
             </span>
         </div>     
-        <div class="line-break">
-        </div>          
+        <br>
         <div class="center-items-container">
             <b-button variant="danger" @click="exitView" size="sm">Back</b-button>
         </div>
@@ -160,7 +159,7 @@ export default {
     },
     methods: {
         exitView() {
-            this.$store.commit("showNoItemTypesViews")
+          this.$store.commit("showView", { viewType: "ItemType", viewName: null });
         },
         onRowSelected(items) {
             this.selectedEnumsOrUnits = items
@@ -292,5 +291,10 @@ export default {
 </script>
 
 <style>
+.center-items-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
 </style>

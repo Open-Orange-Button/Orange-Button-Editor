@@ -38,42 +38,61 @@
                       v-model="treeSearchTerm"
                       placeholder="Search concepts... (wildcard: * )"
                     />
-                    <b-form-group label="Search Modes:" v-slot="{ ariaDescribedby }">
-                      <b-form-radio-group
-                        id="tree-search-modes"
-                        v-model="searchMode"
-                        :aria-describedby="ariaDescribedby"
-                        name="tree-search-modes"
-                      >
-                        <b-form-radio value="searchNames">
-                          Find By Name
-                           <v-icon name="info-circle" scale="1" id="tree-search-names" />
-                           <b-tooltip target="tree-search-names" triggers="focus hover" placement="right">
-                             Finds concepts whose name matches the search term.
-                           </b-tooltip>
-                        </b-form-radio>
-                        <b-form-radio value="searchFindDirect">
-                          Find Direct Usage
-                          <v-icon name="info-circle" scale="1" id="tree-search-find-direct" />
-                          <b-tooltip target="tree-search-find-direct" triggers="focus hover" placement="right">
-                            Finds concepts with a member whose name matches the search term.<br>
-                            Example: Search term "CapacityAC" finds <b>PVSystem</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b>.
-                          </b-tooltip>
-                        </b-form-radio>
-                        <b-form-radio value="searchFindAll">
-                          Find All Usage
-                           <v-icon name="info-circle" scale="1" id="tree-search-find-all" />
-                           <b-tooltip target="tree-search-find-all" triggers="focus hover" placement="right">
-                             Finds concepts with a possibly nested member whose name matches the search term.<br>
-                             Example: Search term "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
-                           </b-tooltip>
-                        </b-form-radio>
-                      </b-form-radio-group>
-                    </b-form-group>
+                    <div class="tree-search-options" style="display: inline-flex">
+                      <span>Search Fields:</span>
+                      <span>
+                        <b-form-group v-slot="{ ariaDescribedby }">
+                          <b-form-radio v-model="searchField" value="searchFieldName">
+                             Concept Name
+                             <v-icon name="info-circle" scale="1" id="search-field-concept-name" />
+                             <b-tooltip target="search-field-concept-name" triggers="focus hover" placement="right">
+                               Search OB concepts by their name.
+                             </b-tooltip>
+                          </b-form-radio>
+                          <b-form-radio v-model="searchField" value="searchFieldItemType">
+                             Item Type
+                             <v-icon name="info-circle" scale="1" id="search-field-element-item-type" />
+                             <b-tooltip target="search-field-element-item-type" triggers="focus hover" placement="right">
+                               Search OB elements by their item type.<br>
+                               Note: Only OB elements have an item type.
+                             </b-tooltip>
+                          </b-form-radio>
+                        </b-form-group>
+                      </span>
+                      <span style="padding-right: 1em" />
+                      <span>Search Modes:</span>
+                      <span>
+                        <b-form-group v-slot="{ ariaDescribedby }">
+                          <b-form-radio v-model="searchMode" value="searchNames">
+                            Find Match
+                             <v-icon name="info-circle" scale="1" id="tree-search-names" />
+                             <b-tooltip target="tree-search-names" triggers="focus hover" placement="right">
+                               Finds concepts whose search field matches the search term.
+                             </b-tooltip>
+                          </b-form-radio>
+                          <b-form-radio v-model="searchMode" value="searchFindDirect">
+                            Find Direct Usage
+                            <v-icon name="info-circle" scale="1" id="tree-search-find-direct" />
+                            <b-tooltip target="tree-search-find-direct" triggers="focus hover" placement="right">
+                              Finds concepts with a member whose search field matches the search term.<br>
+                              Example: Concept name "CapacityAC" finds <b>PVSystem</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b>.
+                            </b-tooltip>
+                          </b-form-radio>
+                          <b-form-radio v-model="searchMode" value="searchFindAll">
+                            Find All Usage
+                             <v-icon name="info-circle" scale="1" id="tree-search-find-all" />
+                             <b-tooltip target="tree-search-find-all" triggers="focus hover" placement="right">
+                               Finds concepts with a possibly nested member whose search field matches the search term.<br>
+                               Example: Concept name "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
+                             </b-tooltip>
+                          </b-form-radio>
+                        </b-form-group>
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <span :key="$store.state.refreshKey">
-                  <span v-for="arr in sortedObjects">
+                  <span v-for="arr in sortedObjects" v-bind:key="arr.defnName">
                     <!-- obj node -->
                     <UploadOBTree
                       v-if="arr.nodeType == 'Object'"
@@ -386,8 +405,7 @@
         <h4 v-if="$store.state.activeEditorView == 'EditItemTypesMain'">
           <h4 v-if="!$store.state.activeItemTypesView">Item Types Editor</h4>
           <h4 v-else-if="$store.state.activeItemTypesView == 'ViewAllItemTypes'">View All Item Types</h4>
-          <h4 v-else-if="$store.state.activeItemTypesView == 'CreateItemType'">Create Item Type</h4>
-          <h4 v-else-if="$store.state.activeItemTypesView == 'EditItemType'">Edit Item Type</h4>
+          <h4 v-else-if="$store.state.activeItemTypesView == 'EditItemType'">Edit Item Types</h4>
           <h4 v-else-if="$store.state.activeItemTypesView == 'CreateItemTypeGroup'">Create Item Type Group</h4>
           <h4 v-else-if="$store.state.activeItemTypesView == 'EditItemTypeGroup'">Edit Item Type Group</h4>
           <h4 v-else-if="$store.state.activeItemTypesView == 'DeleteItemTypeGroup'">Delete Item Type Group</h4>
@@ -524,9 +542,8 @@ export default {
       treeSearchTerm: "",
       GitHubTaxonomyUser: "https://github.com/Open-Orange-Button/Orange-Button-Taxonomy/blob/main/Master-OB-OpenAPI.json",
       GitHubTaxonomyRaw: "https://raw.githubusercontent.com/Open-Orange-Button/Orange-Button-Taxonomy/main/Master-OB-OpenAPI.json",
+      searchField: "searchFieldName",
       searchMode: "searchNames",
-      searchModes: [{ value: "searchNames", text: "Find By Name" }, { value: "searchFindDirect", text: "Find Direct Usage" },
-                    { value: "searchFindAll", text: "Find All Usage" }],
       latestTaxonomyViewObjLinks: [{ name: "Project", parameter: "Project"}, { name: "Site", parameter: "Site"}, { name: "All Definitions", parameter: "all"}],
       searchDefnUsages: false,
       searchDefnUsagesNested: false
@@ -577,17 +594,16 @@ export default {
     },
     showCreateDefinitionForm() {
       this.$store.commit("selectNone")
-      this.$store.commit("showCreateDefinitionForm");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "CreateDefinitionForm" });
       this.$store.commit("refreshCreateDefnInputs", true);
     },
     showLoadInDefinitionForm() {
       this.$store.commit("selectNone")
-      this.$store.commit("showLoadInDefinitionForm");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "LoadInDefinition" });
     },
     showEditItemTypesMain() {
       this.$store.commit("selectNone")
-      this.$store.commit("showNoItemTypesViews")
-      this.$store.commit("showEditItemTypesMain");
+      this.$store.commit("showView", { viewType: "Editor", viewName: "EditItemTypesMain" });
     },
     toggleExpandAll() {
       this.expandAllObjects = !this.expandAllObjects;
@@ -599,7 +615,10 @@ export default {
       let fileToExport = null;
       let exportModalHeader = "";
       if (fileToExportType === "taxonomy") {
-        fileToExport = this.$store.state.currentFile.fullFileForExport;
+        let currentFile = this.$store.state.currentFile;
+        fileToExport = currentFile.fullFileForExport;
+        fileToExport["x-ob-item-types"] = currentFile.item_types;
+        fileToExport["x-ob-item-type-groups"] = currentFile.item_type_groups;
         exportModalHeader = "Save as...";
       } else if (fileToExportType === "sampleJSON") {
         fileToExport = miscUtilities.getSampleJSON({ fileName: this.$store.state.currentFile.fileName, state: this.$store.state });
@@ -795,9 +814,9 @@ export default {
       ];
 
       if (this.$store.state.currentFile)
-        this.$store.state.selectedFileName = this.$store.state.currentFile["fileName"]
+        this.$store.state.selectedFileName = this.$store.state.currentFile["fileName"];
 
-      this.$store.commit('showNoView')
+      this.$store.commit("showView", { viewType: "Editor", viewName: null });
 
       this.$store.state.isSelected = null;
       this.$store.state.nameRef = null;
@@ -852,7 +871,7 @@ export default {
       this.numOfElem = 50;
       this.$store.state.treeSearchTerm = "";
       this.$store.state.nameRef = "";
-      this.$store.commit("showNoView")
+      this.$store.commit("showView", { viewType: "Editor", viewName: null });
     },
     showAddFileModal() {
       this.file = null;
@@ -937,16 +956,28 @@ export default {
       }
 
       let allDefnMaps = [obj_map, el_map, immutable_map, arr_map];
-      let allDefnKeys = allDefnMaps.map(Object.keys).flat();
-      let filterByWildcard = k => miscUtilities.wildcardSearch(k.toLowerCase(), this.treeSearchTerm.toLowerCase());
+      let allNameDefnPairs = allDefnMaps.map(Object.entries).flat();
+
+      // field to filter by in search
+      let getSearchField = ([name, _]) => name;
+      if (this.searchField === 'searchFieldItemType') {
+        getSearchField = ([_, defn]) => defn.nodeType === 'TaxonomyElement' ? defn.subClass_obj['x-ob-item-type'] : '';
+      }
+
+      // filter modes
+      let filterByWildcard = s => miscUtilities.wildcardSearch(s.toLowerCase(), this.treeSearchTerm.toLowerCase());
       let viewObjsSet = new Set(this.$store.state.viewObjs);
-      let filterByViewObj = k => viewObjsSet.has(k);
+      let filterByViewObj = s => viewObjsSet.has(s);
+
+      // perform the filtering by the search term
       let defnFilter = this.$store.state.viewerMode === 'Edit Mode' ? filterByWildcard : filterByViewObj;
-      let defnsToShowKeys = new Set([...allDefnKeys.filter(defnFilter)]);
+      let defnsToShowKeys = new Set(allNameDefnPairs.filter(pair => defnFilter(getSearchField(pair))).map(([name, _]) => name));
+
+      // post-filtering search results processing
+      let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
       let searchFindDirect = this.searchMode === 'searchFindDirect';
       let searchFindAll = this.searchMode === 'searchFindAll';
       if (searchFindDirect || searchFindAll) {
-        let file = this.$store.state.loadedFiles[this.$store.state.selectedFileName].file;
         let usages = miscUtilities.findDefnUsages({ defnNameSet: defnsToShowKeys, file });
         usages.forEach(k => defnsToShowKeys.add(k));
         if (searchFindAll) {
@@ -956,6 +987,8 @@ export default {
           }
         }
       }
+
+      // prepare results for display
       let getDefnsInMap = defnMap => [...defnsToShowKeys].map(k => defnMap[k]).filter(Boolean);
       let defnsToShow = allDefnMaps.map(getDefnsInMap);
       defnsToShow.forEach(defns => defns.sort(sortByDefnName));
@@ -1057,17 +1090,17 @@ export default {
 .tree-search {
   padding-left: 0.5em;
   padding-right: 1em;
-  width: 559px;
+  width: 38em;
 }
 
 .tree-search-options {
   display: flex;
   margin-top: -0.5em;
-  margin-bottom: 0.5em;
+  height: 5em;
 }
 
 div.tree-search-options > span {
-  padding-right: 0.15em;
+  padding-right: 0.3em;
 }
 
 .file-tabs {

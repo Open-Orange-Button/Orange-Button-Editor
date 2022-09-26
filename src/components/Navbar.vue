@@ -39,8 +39,7 @@
       </template>
       <template v-slot:default>
         <h5>Version: {{ $store.state.appVersion}} </h5>
-        <div class="line-break">
-        </div>           
+        <br>
         <h5>Dependencies Loaded:</h5>
         <p>
           None
