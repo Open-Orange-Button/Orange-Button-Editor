@@ -38,62 +38,57 @@
                       v-model="treeSearchTerm"
                       placeholder="Search concepts... (wildcard: * )"
                     />
-                    <b-form-group label="Search Fields:" v-slot="{ ariaDescribedby }">
-                      <b-form-radio-group
-                        id="tree-search-fields"
-                        v-model="searchField"
-                        :aria-describedby="ariaDescribedby"
-                        name="tree-search-fields"
-                      >
-                        <b-form-radio value="searchFieldName">
-                           Concept Name
-                           <v-icon name="info-circle" scale="1" id="search-field-concept-name" />
-                           <b-tooltip target="search-field-concept-name" triggers="focus hover" placement="right">
-                             Search OB concepts by their name.
-                           </b-tooltip>
-                        </b-form-radio>
-                        <b-form-radio value="searchFieldItemType">
-                           Item Type
-                           <v-icon name="info-circle" scale="1" id="search-field-element-item-type" />
-                           <b-tooltip target="search-field-element-item-type" triggers="focus hover" placement="right">
-                             Search OB elements by their item type.<br>
-                             Note: Only OB elements have an item type.
-                           </b-tooltip>
-                        </b-form-radio>
-                      </b-form-radio-group>
-                    </b-form-group>
-                    <b-form-group label="Search Modes:" v-slot="{ ariaDescribedby }">
-                      <b-form-radio-group
-                        id="tree-search-modes"
-                        v-model="searchMode"
-                        :aria-describedby="ariaDescribedby"
-                        name="tree-search-modes"
-                      >
-                        <b-form-radio value="searchNames">
-                          Find Match
-                           <v-icon name="info-circle" scale="1" id="tree-search-names" />
-                           <b-tooltip target="tree-search-names" triggers="focus hover" placement="right">
-                             Finds concepts whose search field matches the search term.
-                           </b-tooltip>
-                        </b-form-radio>
-                        <b-form-radio value="searchFindDirect">
-                          Find Direct Usage
-                          <v-icon name="info-circle" scale="1" id="tree-search-find-direct" />
-                          <b-tooltip target="tree-search-find-direct" triggers="focus hover" placement="right">
-                            Finds concepts with a member whose search field matches the search term.<br>
-                            Example: Concept name "CapacityAC" finds <b>PVSystem</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b>.
-                          </b-tooltip>
-                        </b-form-radio>
-                        <b-form-radio value="searchFindAll">
-                          Find All Usage
-                           <v-icon name="info-circle" scale="1" id="tree-search-find-all" />
-                           <b-tooltip target="tree-search-find-all" triggers="focus hover" placement="right">
-                             Finds concepts with a possibly nested member whose search field matches the search term.<br>
-                             Example: Concept name "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
-                           </b-tooltip>
-                        </b-form-radio>
-                      </b-form-radio-group>
-                    </b-form-group>
+                    <div class="tree-search-options" style="display: inline-flex">
+                      <span>Search Fields:</span>
+                      <span>
+                        <b-form-group v-slot="{ ariaDescribedby }">
+                          <b-form-radio v-model="searchField" value="searchFieldName">
+                             Concept Name
+                             <v-icon name="info-circle" scale="1" id="search-field-concept-name" />
+                             <b-tooltip target="search-field-concept-name" triggers="focus hover" placement="right">
+                               Search OB concepts by their name.
+                             </b-tooltip>
+                          </b-form-radio>
+                          <b-form-radio v-model="searchField" value="searchFieldItemType">
+                             Item Type
+                             <v-icon name="info-circle" scale="1" id="search-field-element-item-type" />
+                             <b-tooltip target="search-field-element-item-type" triggers="focus hover" placement="right">
+                               Search OB elements by their item type.<br>
+                               Note: Only OB elements have an item type.
+                             </b-tooltip>
+                          </b-form-radio>
+                        </b-form-group>
+                      </span>
+                      <span style="padding-right: 1em" />
+                      <span>Search Modes:</span>
+                      <span>
+                        <b-form-group v-slot="{ ariaDescribedby }">
+                          <b-form-radio v-model="searchMode" value="searchNames">
+                            Find Match
+                             <v-icon name="info-circle" scale="1" id="tree-search-names" />
+                             <b-tooltip target="tree-search-names" triggers="focus hover" placement="right">
+                               Finds concepts whose search field matches the search term.
+                             </b-tooltip>
+                          </b-form-radio>
+                          <b-form-radio v-model="searchMode" value="searchFindDirect">
+                            Find Direct Usage
+                            <v-icon name="info-circle" scale="1" id="tree-search-find-direct" />
+                            <b-tooltip target="tree-search-find-direct" triggers="focus hover" placement="right">
+                              Finds concepts with a member whose search field matches the search term.<br>
+                              Example: Concept name "CapacityAC" finds <b>PVSystem</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b>.
+                            </b-tooltip>
+                          </b-form-radio>
+                          <b-form-radio v-model="searchMode" value="searchFindAll">
+                            Find All Usage
+                             <v-icon name="info-circle" scale="1" id="tree-search-find-all" />
+                             <b-tooltip target="tree-search-find-all" triggers="focus hover" placement="right">
+                               Finds concepts with a possibly nested member whose search field matches the search term.<br>
+                               Example: Concept name "CapacityAC" finds <b>Job</b> because <b>CapacityAC</b> is a member of <b>PVSystem</b> and <b>PVSystems</b> is a member of <b>Job</b>.
+                             </b-tooltip>
+                          </b-form-radio>
+                        </b-form-group>
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <span :key="$store.state.refreshKey">
@@ -1095,17 +1090,17 @@ export default {
 .tree-search {
   padding-left: 0.5em;
   padding-right: 1em;
-  width: 559px;
+  width: 38em;
 }
 
 .tree-search-options {
   display: flex;
   margin-top: -0.5em;
-  margin-bottom: 0.5em;
+  height: 5em;
 }
 
 div.tree-search-options > span {
-  padding-right: 0.15em;
+  padding-right: 0.3em;
 }
 
 .file-tabs {
