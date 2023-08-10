@@ -341,6 +341,7 @@ export default {
         temp_ret_obj = [
           { Attributes: "Name", Values: this.$store.state.nodeName },
           { Attributes: "Type", Values: this.$store.state.nodeType },
+          { Attributes: "Documentation", Values: temp_doc },
           { Attributes: "Array Item", Values: arrayItemName },
           { Attributes: "Usage Tips", Values: defnOBUsageTips }
         ];
