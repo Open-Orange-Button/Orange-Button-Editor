@@ -349,7 +349,8 @@ export default {
           { Attributes: "Name", Values: this.$store.state.nodeName },
           { Attributes: "Type", Values: selectedDef["type"] },
           { Attributes: "Documentation", Values: temp_doc },
-          { Attributes: "Usage Tips", Values: defnOBUsageTips }
+          { Attributes: "Usage Tips", Values: defnOBUsageTips },
+          { Attributes: "Sample", Values: defnOBSampleValue }
         ];
       }
       let temp_ret_obj_type_attribute = temp_ret_obj.filter(obj => obj["Attributes"] === "Type")[0];

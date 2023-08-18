@@ -28,8 +28,8 @@ export function deleteAllNodes(JSONFile, nodeName) {
         }
         if (JSONFile[key]["allOf"][i]["$ref"]) {
           let superClassName = JSONFile[key]["allOf"][i]["$ref"].slice(
-            JSONFile[key]["allOf"][i]["$ref"].lastIndexOf("/") + 1,
-            JSONFile[key]["allOf"][i]["$ref"].length
+              JSONFile[key]["allOf"][i]["$ref"].lastIndexOf("/") + 1,
+              JSONFile[key]["allOf"][i]["$ref"].length
           );
           if (superClassName == nodeName) {
             Vue.delete(JSONFile[key]["allOf"], i);
@@ -54,10 +54,10 @@ export function deleteNode(JSONFile, nodeName, parentName) {
           if (JSONFile[i]["allOf"][j]["$ref"]) {
             for (let k in JSONFile[i]["allOf"][j]["$ref"]) {
               let superClassSubStringIndex =
-                JSONFile[i]["allOf"][j]["$ref"][k].lastIndexOf("/") + 1;
+                  JSONFile[i]["allOf"][j]["$ref"][k].lastIndexOf("/") + 1;
               let superClassSubString = JSONFile[i]["allOf"][j]["$ref"][
-                k
-              ].slice(superClassSubStringIndex);
+                  k
+                  ].slice(superClassSubStringIndex);
               if (superClassSubString == nodeName) {
                 Vue.delete(JSONFile[i]["allOf"][j]["$ref"], k);
               }
@@ -94,11 +94,20 @@ export function editNode(JSONFile, nodeName, newDescription) {
         JSONFile[nodeName]["allOf"][i]["description"] = newDescription;
       }
     }
-  } else if (JSONFile[nodeName]["type"] == "object") {
+  } else if (
+      JSONFile[nodeName]["type"] === "object" ||
+      JSONFile[nodeName]["type"] === "array"
+  ) {
     nodeEdit.properties = JSONFile[nodeName]["properties"];
-    nodeEdit.type = "object";
+    nodeEdit.type = JSONFile[nodeName]["type"];
+    nodeEdit["x-ob-usage-tips"] = JSONFile[nodeName]["x-ob-usage-tips"];
+    nodeEdit.items = JSONFile[nodeName]["items"];
     Vue.set(JSONFile, nodeName, nodeEdit);
-  } else {
+  } else { // primitives
+    nodeEdit.type = JSONFile[nodeName]["type"];
+    nodeEdit["x-ob-usage-tips"] = JSONFile[nodeName]["x-ob-usage-tips"];
+    nodeEdit["x-ob-sample-value"] = JSONFile[nodeName]["x-ob-sample-value"];
+
     Vue.set(JSONFile, nodeName, nodeEdit);
   }
 }
@@ -139,13 +148,13 @@ export function changeName(JSONFile, currentNodeName, newNodeName) {
     } else if (JSONFile[i]["items"]) {
       if (JSONFile[i]["items"]["$ref"]) {
         let arrayRefIndex = JSONFile[i]["items"]["$ref"].lastIndexOf("/") + 1
-        let arrayRefSubString = JSONFile[i]["items"]["$ref"].slice(arrayRefIndex)       
+        let arrayRefSubString = JSONFile[i]["items"]["$ref"].slice(arrayRefIndex)
         if (arrayRefSubString == currentNodeName) {
           tmp = JSONFile[i]["items"]["$ref"]
           Vue.delete(JSONFile[i]["items"], "$ref")
           tmp = tmp.replace(currentNodeName, newNodeName)
           Vue.set(JSONFile[i]["items"], "$ref", tmp)
-        } 
+        }
       }
     }
   }
@@ -153,10 +162,10 @@ export function changeName(JSONFile, currentNodeName, newNodeName) {
 
 //Create node
 export function createNodeElement(
-  JSONFile,
-  nodeName,
-  nodeType,
-  nodeDescription
+    JSONFile,
+    nodeName,
+    nodeType,
+    nodeDescription
 ) {
   let node_attr = {
     type: nodeType,
@@ -167,10 +176,10 @@ export function createNodeElement(
 
 //Create object
 export function createNodeObject(
-  JSONFile,
-  objectName,
-  objectDescription,
-  elementForms
+    JSONFile,
+    objectName,
+    objectDescription,
+    elementForms
 ) {
   let properties = {};
   for (let i in elementForms) {
@@ -200,10 +209,10 @@ export function createArrayOfAllElementDefinitions(JSONFile, array) {
 //adding children to the top level object does not propagate throughout the reference objects
 // if all non-top level elements/objects are references, do we need to add the child to anything other than the top level defn? probably not
 export function addChildToObject(
-  JSONFile,
-  parentName,
-  childName,
-  childRefFile
+    JSONFile,
+    parentName,
+    childName,
+    childRefFile
 ) {
   let childObj = null;
   let parentFile = JSONFile.file;
@@ -221,9 +230,9 @@ export function addChildToObject(
       for (let i in JSONFile["file"][parentName]["allOf"]) {
         if (JSONFile["file"][parentName]["allOf"][i]["properties"]) {
           Vue.set(
-            JSONFile["file"][parentName]["allOf"][i]["properties"],
-            childName,
-            childObj
+              JSONFile["file"][parentName]["allOf"][i]["properties"],
+              childName,
+              childObj
           );
         }
       }
@@ -239,9 +248,9 @@ export function addChildToObject(
       for (let i in JSONFile["file"][parentName]["allOf"]) {
         if (JSONFile["file"][parentName]["allOf"][i]["properties"]) {
           Vue.set(
-            JSONFile["file"][parentName]["allOf"][i]["properties"],
-            childName,
-            childObj
+              JSONFile["file"][parentName]["allOf"][i]["properties"],
+              childName,
+              childObj
           );
         }
       }
@@ -253,11 +262,11 @@ export function addChildToObject(
 
 // add superClass to object, making that object a subclass
 export function addSuperClass(
-  workingFile,
-  subClassName,
-  superClassName,
-  superClassRefFileName,
-  loadedFiles
+    workingFile,
+    subClassName,
+    superClassName,
+    superClassRefFileName,
+    loadedFiles
 ) {
   let refExists = false;
   let allOfArr = [];
@@ -266,8 +275,8 @@ export function addSuperClass(
   if (workingFile[subClassName]["allOf"] !== undefined) {
     for (let i of JSONFile[workingFile].allOf) {
       if (
-        i["ref"] ==
-        "#/components/schemas/" + superClassName
+          i["ref"] ==
+          "#/components/schemas/" + superClassName
       ) {
         refExists = true;
       }
@@ -295,7 +304,7 @@ export function removeSuperClass(JSONFile, subClassName, superClassName) {
     for (let i in JSONFile[subClassName]["allOf"]) {
       if (JSONFile[subClassName]["allOf"][i]["$ref"]) {
         if (
-          JSONFile[subClassName]["allOf"][i]["$ref"].includes(superClassName)
+            JSONFile[subClassName]["allOf"][i]["$ref"].includes(superClassName)
         ) {
           Vue.delete(JSONFile[subClassName]["allOf"], i);
         }
@@ -382,7 +391,7 @@ export function getDefnNameFromRef(ref) {
 // returns a list of dependencies of an obj
 export function getObjChildren(refFile, defnName) {
   // don't need to pull in these objects if they are referenced as superclass
-  var superClassWhiteList = ["TaxonomyElementString", "TaxonomyElementNumber", 
+  var superClassWhiteList = ["TaxonomyElementString", "TaxonomyElementNumber",
     "TaxonomyElementInteger", "TaxonomyElementBoolean"]
   // don't re-add primitives
   var primitiveWhiteList = ["Value", "Unit", "Decimals", "Precision", "StartTime", "EndTime"]
@@ -392,49 +401,49 @@ export function getObjChildren(refFile, defnName) {
 
   if (defnObj["type"] == "object") {
     dependencies.push(
-      {
-        "type": "object",
-        "defnName": defnName
-      }
+        {
+          "type": "object",
+          "defnName": defnName
+        }
     )
     for (let i in defnObj["properties"]) {
       dependencies = dependencies.concat(getObjChildren(refFile, i))
     }
   } else if (defnObj["type"] == "array") {
     dependencies.push(
-      {
-        "type": "array",
-        "defnName": defnName
-      }
+        {
+          "type": "array",
+          "defnName": defnName
+        }
     )
     let item = getDefnNameFromRef(defnObj["items"]["$ref"])
 
     dependencies = dependencies.concat(getObjChildren(refFile, item))
-      
+
   } else {
     if (!primitiveWhiteList.includes(defnName)) {
       for (let i in defnObj["allOf"]) {
         if ("$ref" in defnObj["allOf"][i]) {
           if (superClassWhiteList.includes(getDefnNameFromRef(defnObj["allOf"][i]["$ref"]))) {
             dependencies.push(
-              {
-                "type": "element",
-                "defnName": defnName
-              }
+                {
+                  "type": "element",
+                  "defnName": defnName
+                }
             )
           } else {
             dependencies.push(
-              {
-                "type": "object",
-                "defnName": defnName
-              }
-            )            
-  
+                {
+                  "type": "object",
+                  "defnName": defnName
+                }
+            )
+
             dependencies = dependencies.concat(getObjChildren(refFile, getDefnNameFromRef(defnObj["allOf"][i]["$ref"])))
           }
         } else if ("properties" in defnObj["allOf"][i]) {
           for (let j in defnObj["allOf"][i]["properties"]) {
-            
+
             dependencies = dependencies.concat(getObjChildren(refFile, j))
           }
         }

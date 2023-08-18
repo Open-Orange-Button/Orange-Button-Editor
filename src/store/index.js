@@ -114,7 +114,7 @@ export default new Vuex.Store({
       Add usage tips to object
     */
     addUsageTips(state, usageTips) {
-      state.nodeOBUsageTips = usageTips
+      state.nodeOBUsageTips = usageTips;
       // check if it is an allOf obj or a regular obj
       // should move function to JSONEditor
       // should use type to check if allOf, Obj or TaxElem
@@ -129,7 +129,7 @@ export default new Vuex.Store({
       }
     },
 
-    /* 
+    /*
       Add enumeration to object
     */
     addEnumToObject(state, _enum) {
@@ -139,7 +139,7 @@ export default new Vuex.Store({
         if (state.currentFile.file[state.isSelected]["allOf"][i]["type"]) {
           if (state.currentFile.file[state.isSelected]["allOf"][i]["enum"]) {
             state.nodeEnum =
-              state.currentFile.file[state.isSelected]["allOf"][i]["enum"];
+                state.currentFile.file[state.isSelected]["allOf"][i]["enum"];
           }
         }
       }
@@ -171,33 +171,33 @@ export default new Vuex.Store({
       let workingFile = state.currentFile;
 
       JSONEditor.addChildToObject(
-        workingFile,
-        parentDefnName,
-        childDefnName,
-        childRefFile
+          workingFile,
+          parentDefnName,
+          childDefnName,
+          childRefFile
       );
     },
 
     /*
-      Edit definition 
+      Edit definition
     */
     editNode(state, payload) {
       JSONEditor.editNode(
-        state.currentFile.file,
-        payload.nodeName,
-        payload.nodeDescription
+          state.currentFile.file,
+          payload.nodeName,
+          payload.nodeDescription
       );
       state.nodeDescription = payload.nodeDescription;
     },
 
-    /* 
+    /*
       Change Name
     */
     changeName(state, payload) {
       JSONEditor.changeName(
-        state.currentFile.file,
-        payload.nodeName,
-        payload.newNodeName
+          state.currentFile.file,
+          payload.nodeName,
+          payload.newNodeName
       )
       state.nodeName = payload.newNodeName
       Vue.delete(state.currentFile.file, payload.nodeName)
@@ -213,11 +213,11 @@ export default new Vuex.Store({
       let superClassRefFileName = payload.superClassRefFileName;
 
       JSONEditor.addSuperClass(
-        workingFile,
-        subClassName,
-        superClassName,
-        superClassRefFileName,
-        state.loadedFiles
+          workingFile,
+          subClassName,
+          superClassName,
+          superClassRefFileName,
+          state.loadedFiles
       );
     },
 
@@ -226,9 +226,9 @@ export default new Vuex.Store({
     */
     removeSuperClass(state, superClassName) {
       JSONEditor.removeSuperClass(
-        state.currentFile.file,
-        state.isSelected,
-        superClassName
+          state.currentFile.file,
+          state.isSelected,
+          superClassName
       );
     },
 
@@ -272,83 +272,62 @@ export default new Vuex.Store({
         for (let i in state.selectedDefnRefFile[selected]["allOf"]) {
           if (state.selectedDefnRefFile[selected]["allOf"][i]["type"]) {
             if (
-              state.selectedDefnRefFile[selected]["allOf"][i][
-              "x-ob-item-type"
-              ]
+                state.selectedDefnRefFile[selected]["allOf"][i][
+                    "x-ob-item-type"
+                    ]
             ) {
               state.nodeOBType =
-                state.selectedDefnRefFile[selected]["allOf"][i][
-                "x-ob-item-type"
-                ];
+                  state.selectedDefnRefFile[selected]["allOf"][i][
+                      "x-ob-item-type"
+                      ];
             } else {
               state.nodeOBType = "";
             }
 
             if ("x-ob-item-type-group" in state.selectedDefnRefFile[selected]["allOf"][i]
-              && state.selectedDefnRefFile[selected]["allOf"][i]["x-ob-item-type-group"]) {
-                state.nodeOBItemTypeGroupName = state.selectedDefnRefFile[selected]["allOf"][i]["x-ob-item-type-group"]
-              } else {
-                state.nodeOBItemTypeGroupName = ''
-              }
+                && state.selectedDefnRefFile[selected]["allOf"][i]["x-ob-item-type-group"]) {
+              state.nodeOBItemTypeGroupName = state.selectedDefnRefFile[selected]["allOf"][i]["x-ob-item-type-group"]
+            } else {
+              state.nodeOBItemTypeGroupName = ''
+            }
 
             if (
-              state.selectedDefnRefFile[selected]["allOf"][i][
-              "x-ob-usage-tips"
-              ]
+                state.selectedDefnRefFile[selected]["allOf"][i][
+                    "x-ob-usage-tips"
+                    ]
             ) {
               state.nodeOBUsageTips =
-                state.selectedDefnRefFile[selected]["allOf"][i][
-                "x-ob-usage-tips"
-                ];
+                  state.selectedDefnRefFile[selected]["allOf"][i][
+                      "x-ob-usage-tips"
+                      ];
             } else {
               state.nodeOBUsageTips = "";
             }
 
             if (
-              state.selectedDefnRefFile[selected]["allOf"][i][
-              "x-ob-sample-value"
-              ]
+                state.selectedDefnRefFile[selected]["allOf"][i][
+                    "x-ob-sample-value"
+                    ]
             ) {
               state.nodeOBSampleValue =
-                state.selectedDefnRefFile[selected]["allOf"][i][
-                "x-ob-sample-value"
-                ];
+                  state.selectedDefnRefFile[selected]["allOf"][i][
+                      "x-ob-sample-value"
+                      ];
             } else {
               state.nodeOBSampleValue = {};
             }
           }
         }
-      } else if (state.selectedDefnRefFile[selected]["type"] == "object") {
-        if (
-          state.selectedDefnRefFile[selected][
-          "x-ob-usage-tips"
-          ]
-        ) {
-          state.nodeOBUsageTips =
-            state.selectedDefnRefFile[selected][
-            "x-ob-usage-tips"
-            ];
-        } else {
-          state.nodeOBUsageTips = "";
-        }
-        state.nodeOBType = "";
-      } else if (state.selectedDefnRefFile[selected]["type"] == "array") {
-        if (
-          state.selectedDefnRefFile[selected][
-          "x-ob-usage-tips"
-          ]
-        ) {
-          state.nodeOBUsageTips =
-            state.selectedDefnRefFile[selected][
-            "x-ob-usage-tips"
-            ];
-        } else {
-          state.nodeOBUsageTips = "";
-        }
-        state.nodeOBType = "";
       } else {
+        if (state.selectedDefnRefFile[selected]["x-ob-usage-tips"]) {
+          state.nodeOBUsageTips =
+              state.selectedDefnRefFile[selected][
+                  "x-ob-usage-tips"
+                  ];
+        } else {
+          state.nodeOBUsageTips = "";
+        }
         state.nodeOBType = "";
-        state.nodeOBUsageTips = "";
       }
 
       // set nodeEnumsOrUnitsObj
@@ -382,7 +361,7 @@ export default new Vuex.Store({
         state.selectedDefinitionNode = selectDefinitionNode;
       }
     },
-    /* 
+    /*
       JSON file handling
     */
     updateOriginalJSONFile(state, json_str) {
@@ -396,8 +375,8 @@ export default new Vuex.Store({
       // replace all instances of schemaFile with schemaFile. schemaFile is no longer needed as we took out the definition obj.
       // state.schemaFile = state.schemaFile
       JSONEditor.createArrayOfAllElementDefinitions(
-        state.schemaFile,
-        state.listOfDefinitionElements
+          state.schemaFile,
+          state.listOfDefinitionElements
       );
     },
     deleteNode(state, payload) {
@@ -405,9 +384,9 @@ export default new Vuex.Store({
         JSONEditor.deleteAllNodes(payload.currentFile, state.nodeName);
       } else {
         JSONEditor.deleteNode(
-          payload.currentFile,
-          payload.nodeName,
-          payload.parent
+            payload.currentFile,
+            payload.nodeName,
+            payload.parent
         );
       }
     },
@@ -420,15 +399,15 @@ export default new Vuex.Store({
         description: payload.nodeElementDescription
       };
       Vue.set(
-        state.schemaFile.definitions.properties,
-        payload.nodeName,
-        node_attr
+          state.schemaFile.definitions.properties,
+          payload.nodeName,
+          node_attr
       );
     },
     exportFile(state, payload) {
       let jsonFileToExport = new Blob(
-        [JSON.stringify(payload.file, null, 2)],
-        { type: "application/json" }
+          [JSON.stringify(payload.file, null, 2)],
+          { type: "application/json" }
       );
       FileSaver.saveAs(jsonFileToExport, payload.filename + ".json");
     },
@@ -441,10 +420,10 @@ export default new Vuex.Store({
     },
     createNodeObject(state, payload) {
       JSONEditor.createNodeObject(
-        state.schemaFile,
-        payload.objectName,
-        payload.objectDescription,
-        payload.elementForms
+          state.schemaFile,
+          payload.objectName,
+          payload.objectDescription,
+          payload.elementForms
       );
     },
     createDefinition(state, payload) {
@@ -476,7 +455,7 @@ export default new Vuex.Store({
           allOf: [
             {
               $ref:
-                `#/components/schemas/TaxonomyElement${arrayString}${payload.OpenAPIType}`
+                  `#/components/schemas/TaxonomyElement${arrayString}${payload.OpenAPIType}`
             },
             {
               type: "object",
@@ -524,13 +503,13 @@ export default new Vuex.Store({
       let allTaxonomyElements = Object.entries(state.currentFile.file).filter(([_, defn]) => miscUtilities.isTaxonomyElement(defn));
       let allTaxonomyElementsMap = allTaxonomyElements.reduce((result, [name, defn]) => { result[name] = defn; return result });
       let itemTypeToTaxonomyElement = allTaxonomyElements.map(([name, defn]) => [name, defn.allOf[1]["x-ob-item-type"]])
-        .reduce((result, [name, itemTypeName]) => {
-          if (!result[itemTypeName]) {
-            result[itemTypeName] = new Set();
-          }
-          result[itemTypeName].add(name);
-          return result;
-        }, {});
+          .reduce((result, [name, itemTypeName]) => {
+            if (!result[itemTypeName]) {
+              result[itemTypeName] = new Set();
+            }
+            result[itemTypeName].add(name);
+            return result;
+          }, {});
       for (let formItemType of payload) {
         allItemTypes[formItemType.itemTypeName] = buildItemTypeDefn(formItemType.defn);
         if (formItemType.defn.initialItemTypeName && formItemType.itemTypeName !== formItemType.defn.initialItemTypeName) {
@@ -612,7 +591,7 @@ export default new Vuex.Store({
       state.loadedFiles[file.fileName] = file;
     },
     removeFile(state, fileName) {
-        delete state.loadedFiles[fileName];
+      delete state.loadedFiles[fileName];
     },
     loadInDefinition(state, payload) {
       let defnNameToLoad = payload.defnName;
@@ -628,26 +607,26 @@ export default new Vuex.Store({
       for (let i in state.currentFile.file[state.isSelected]["allOf"]) {
         if (state.currentFile.file[state.isSelected]["allOf"][i]["type"]) {
           Vue.set(
-            state.currentFile.file[state.isSelected]["allOf"][i],
-            "x-ob-item-type",
-            payload.OBItemType
+              state.currentFile.file[state.isSelected]["allOf"][i],
+              "x-ob-item-type",
+              payload.OBItemType
           )
           state.nodeEnumsOrUnitsObj = state.loadedFiles[state.selectedFileName]["item_types"][state.nodeOBType]
 
           // if item group for element does not match
           if ("x-ob-item-type-group" in state.currentFile.file[state.isSelected]["allOf"][i]
-            && state.currentFile.file[state.isSelected]["allOf"][i]["x-ob-item-type-group"]) {
-              let currentItemTypeGroup = state.currentFile.file[state.isSelected]["allOf"][i]["x-ob-item-type-group"]
-              if (!state.loadedFiles[state.selectedFileName]["item_type_groups"][currentItemTypeGroup]['type'].includes(payload.OBItemType)) {
-                Vue.set(
+              && state.currentFile.file[state.isSelected]["allOf"][i]["x-ob-item-type-group"]) {
+            let currentItemTypeGroup = state.currentFile.file[state.isSelected]["allOf"][i]["x-ob-item-type-group"]
+            if (!state.loadedFiles[state.selectedFileName]["item_type_groups"][currentItemTypeGroup]['type'].includes(payload.OBItemType)) {
+              Vue.set(
                   state.currentFile.file[state.isSelected]["allOf"][i],
                   "x-ob-item-type-group",
                   ''
-                )
-                state.nodeOBItemTypeGroupName = ''
-                state.nodeOBItemTypeGroupObj = {}
-              }
+              )
+              state.nodeOBItemTypeGroupName = ''
+              state.nodeOBItemTypeGroupObj = {}
             }
+          }
         }
       }
     },
@@ -661,10 +640,10 @@ export default new Vuex.Store({
       for (let i in state.currentFile.file[state.isSelected]["allOf"]) {
         if (state.currentFile.file[state.isSelected]["allOf"][i]["type"]) {
           Vue.set(
-            state.currentFile.file[state.isSelected]["allOf"][i],
-            "x-ob-item-type-group",
-            payload.OBItemTypeGroupName
-          )          
+              state.currentFile.file[state.isSelected]["allOf"][i],
+              "x-ob-item-type-group",
+              payload.OBItemTypeGroupName
+          )
         }
       }
     },
@@ -676,7 +655,7 @@ export default new Vuex.Store({
     // mode: 'init' or 'create_cookie'; init is for reading cookies when the app inits
     addViewObj(state, params) {
       state.viewObjs.push(params['el'])
-      if (params['mode'] == 'create_cookie') 
+      if (params['mode'] == 'create_cookie')
         miscUtilities.createCookie('viewObjs', JSON.stringify(state.viewObjs), 500)
     },
     removeViewObj(state, params) {
