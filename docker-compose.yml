@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  ob-editor:
+    build: .
+    ports:
+      - "9090:80" 
+      #update the port if needed.
+    networks:
+      - ob-network
+
+networks:
+  ob-network:
+    driver: bridge 
