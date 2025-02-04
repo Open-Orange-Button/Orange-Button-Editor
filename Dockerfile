@@ -1,4 +1,4 @@
-# Use the official Node.js image as the base image
+# Build Stage - Using Node.js to build the frontend
 FROM node:16 AS build
 
 # Set the working directory inside the container
@@ -16,12 +16,23 @@ COPY . .
 # Build the application for production
 RUN npm run build
 
-# Use a lightweight web server to serve the built files
+# Production Stage - Using Nginx to serve the built frontend
 FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
 
-# Expose port 80
+# Set the working directory inside the container
+WORKDIR /usr/share/nginx/html
+
+# Copy the built files from the previous stage
+COPY --from=build /app/dist .
+
+# Ensure the /health endpoint exists (for ALB health checks)
+RUN echo "OK" > /usr/share/nginx/html/health
+
+# Copy a custom Nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Expose the ports
 EXPOSE 80
 
 # Start Nginx server
-CMD ["nginx", "-g", "daemon off;"] 
+CMD ["nginx", "-g", "daemon off;"]
