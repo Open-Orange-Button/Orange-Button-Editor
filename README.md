@@ -31,13 +31,18 @@ To run the OB Editor locally using Docker, follow these steps:
    You can download it from [Docker's official website](https://www.docker.com/products/docker-desktop).
 
 2. **Build the Docker Image**: Navigate to the root directory of your project and run the following command to build the Docker image:
+
+3. **Build and run the Docker Container**: Start the container using Docker Compose at Port 3030:
    ```bash
-   docker-compose build -t obeditor-local .
-   ```
-3. **Run the Docker Container**: Start the container using Docker Compose at Port 3030:
-   ```bash
+   docker build -t obeditor-local .
    docker run -d -p 3030:80 obeditor-local
    ```
+OR using Docker Compose (detached mode with -d)
+
+  ```bash
+   docker-compose up --build -d 
+   ```
+
 4. **Access the Application**: Open a web browser and go to `http://localhost:3030` to access the OB Editor.
 
 5. **Stop the Container**: To stop the running container, use:
