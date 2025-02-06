@@ -4,11 +4,10 @@ services:
   ob-editor:
     build: .
     ports:
-      - "9090:80" 
-      #update the port if needed.
+      - "3030:80"  # Map container port 80 to host port 3030
     networks:
       - ob-network
 
 networks:
   ob-network:
-    driver: bridge 
+    driver: bridge

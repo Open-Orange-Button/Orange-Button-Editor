@@ -32,7 +32,7 @@ RUN echo "OK" > /usr/share/nginx/html/health
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Expose the ports
-EXPOSE 80
+EXPOSE 3030
 
 # Start Nginx server
 CMD ["nginx", "-g", "daemon off;"]
