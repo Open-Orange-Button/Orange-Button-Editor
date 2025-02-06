@@ -6,7 +6,7 @@
           id="navbar-logo"
           src="@/assets/images/Orange-button-logo-flat-rgb.png"
         />
-        Orange Button OpenAPI Editor
+        OB 2.0 OpenAPI Editor from OB Alliance - www.oballiance.org
       </b-navbar-brand>
 
       <!-- Right aligned nav items -->
