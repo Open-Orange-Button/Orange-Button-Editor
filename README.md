@@ -7,7 +7,6 @@ Welcome to the OB Editor project. This document provides instructions for settin
 You can use the editor online at:
 - [OB 2.0 Editor](https://obeditor.oballiance.org)
 
-
 ## Docker Setup
 
 Clone the repo to your local directory
@@ -23,9 +22,6 @@ Run pwd to confirm you are in the directory and use ls to ensure you can see all
 pwd
 ls
 ```
-
-## Project Setup- Use these commands if you not using Docker.
-Now run the following commands to build the container and get the application running on docker running locally
 
 ## Docker Deployment
 
@@ -55,6 +51,9 @@ To run the OB Editor locally using Docker, follow these steps:
    docker-compose logs
    ```
 By following these steps, you can run the OB Editor locally using Docker. If you encounter any issues, please refer to the Docker documentation or seek further assistance.
+
+
+## Project Setup- Use these commands if you not using Docker.
 
 ### Install Dependencies- Follow this 
 
